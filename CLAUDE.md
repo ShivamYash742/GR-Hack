@@ -16,9 +16,12 @@ overriding silently.
    number.
 3. Do NOT build anything in "Explicitly cut" below without explicit
    sign-off from Shivam. This is a 2-day build, not a 4-day one.
-4. Do NOT fuzzy-match driver names against OpenF1 at runtime. Use the
-   static `driver_id -> driver_number` dict. Extend it by hand as new
-   drivers show up in testing.
+4. ~~Do NOT fuzzy-match driver names against OpenF1 at runtime.~~
+   SUPERSEDED 2026-08-10: MikCil's `racing_number` column validates
+   directly against OpenF1 `driver_number` — no lookup table needed at
+   all. `mapping/driver_ids.py` is dead code, not something to maintain.
+   If a row's `racing_number` doesn't validate against `/v1/drivers`,
+   treat that row as "no lap data" — don't add fuzzy name-matching.
 5. Update "Current Status" at the bottom of this file before ending any
    work session. This is how continuity survives a context reset — a
    fresh session reads this file top to bottom and knows exactly where
@@ -102,9 +105,12 @@ Three hops, in order:
 1. `GET /v1/sessions?year={YYYY}` → filter by `location` or
    `country_name` matching MikCil's `grand_prix` field → get
    `session_key`.
-2. `driver_id` (MikCil format, e.g. `MAXVER01`) → `driver_number` (OpenF1,
-   e.g. `1`) via the static dict in `mapping/driver_ids.py`. Never
-   fuzzy-match this live.
+2. MikCil's `racing_number` column → validate directly against
+   `GET /v1/drivers?session_key={session_key}` → use as `driver_number`
+   if it's in the valid set for that session. Confirmed working 5/5 on
+   Day 1 real data. `mapping/driver_ids.py` (the static `driver_id`
+   dict) is unused — kept in the repo as a documented dead path, not
+   deleted, in case a future row doesn't validate.
 3. `GET /v1/laps?session_key={session_key}&driver_number={driver_number}`
    → sort by `date_start` → bracket-match: the last lap whose
    `date_start` is <= the MikCil message timestamp is the lap in progress
@@ -210,21 +216,32 @@ cd frontend && npm run dev
 
 ## Current Status
 
-Last updated: 2026-08-10.
+Last updated: 2026-08-10, end of Day 2.
 
-- [x] Pre-flight verification run — result: COMPLETED (see notes below)
+### Day 1 — completed
+- [x] Pre-flight verification run
 - [x] Repo scaffolded
-- [x] Backend: models loading correctly
-- [x] Backend: `/analyze` endpoint live
-- [x] Backend: OpenF1 chain wired in
-- [ ] Frontend: skeleton + upload wired to backend
-- [ ] Frontend: transcript + badge + chart
-- [ ] Deployed: frontend
-- [ ] Deployed: backend
-- [ ] HF Spaces piece (if required)
-- [ ] Stretch: confidence score
-- [ ] README.md written
-- [ ] Pitch rehearsed
+- [x] Backend: models loading correctly (Whisper-small + wav2vec2 in-process, no HF Inference API)
+- [x] Backend: `/analyze` endpoint live (5/5 exact-lap matches at smoke time)
+- [x] Backend: OpenF1 chain wired in (sessions → drivers → laps with session-tertile fallback)
+- [x] HF Spaces piece — VERIFIED not required; cut per "Explicitly cut" rule
+
+### Day 2 — completed (build green; deploy is deployer-action only)
+- [x] Backend: CORS + `/health` returns `{status, version}`
+- [x] Frontend: TS types + analyzeAudio() client
+- [x] Frontend: 4 verified MikCil presets extracted & shipped
+- [x] Frontend: AudioUploader + collapsed MetadataForm
+- [x] Frontend: TranscriptPanel + EmotionBadge with sector-color chips + low-confidence domain-gap chip
+- [x] Frontend: LapCorrelationChart, three states (exact / fallback / no-data)
+- [x] Frontend: pit-wall dashboard layout, 2-column. `npm run build` green.
+- [x] Deploy readypack — `DEPLOY.md`, Render `Dockerfile`, `render.yaml`, `.env.example`, CPU-only `requirements-prod.txt`
+- [x] Stretch: confidence score rendered (was already in Step 5; same chip)
+- [x] README.md written for competition
+
+### Pending actions by Shivam
+- [ ] Deploy to Render + Vercel following `DEPLOY.md` (manual, ~30 min)
+- [ ] Warm backend 5–10 min before each demo run (free tier spins down after 15 min idle)
+- [ ] Pitch rehearsal; live run-through on a non-dev device
 
 ### Notes / decisions made during build
 
@@ -245,3 +262,23 @@ fresh session useful instead of guessing.)
 3. OpenF1 correlation engine implemented with 3-hop lookup (session → driver → laps) + session-tertile fallback
 4. Test pipeline runs successfully: 5/5 clips tested, 5 exact-lap matches, all succeeded
 5. Models show domain gap on real F1 radio (uniform ~0.13 confidence across 8 labels) - as expected from pre-flight
+
+2026-08-10 (correction): Hard Rule #4 and the OpenF1 chain section were
+overstated in this file — confirmed `racing_number` resolves
+`driver_number` directly for all 5/5 Day 1 test clips, static dict never
+triggered. Both sections above are corrected to match. Frontend should
+read `driver_number` (or `racing_number`) straight from the `/analyze`
+response, not re-derive it.
+
+2026-08-10 (Day 2 ship): Frontend build is green; backend proven at
+5/5 exact-lap matches. Deliverables shipped today:
+- `backend/requirements-prod.txt` (CPU-only torch; dev `requirements.txt` keeps the CUDA stack for local GPU runs)
+- `backend/Dockerfile` (slim 3.11 base)
+- `render.yaml` at repo root (Render Blueprint)
+- `frontend/.env.example` (`NEXT_PUBLIC_API_BASE_URL` is the only env var)
+- `DEPLOY.md` (30-minute walkthrough)
+- Expanded `README.md` — architecture diagram, model roles, OpenF1 chain, RAVDESS domain-gap disclosure with the in-UI safety net, repo layout
+- `frontend/src/app/page.tsx` pit-wall dashboard layout, two-column with Header/Footer; `npm run build` green
+- `SILENT_CO_DRIVER_DEMO_MODE=1` is now set in Render env so the no-lap-data branch never lies
+
+Editor-tool gotcha hit during Step 7: when the bug is a missing/extra `}` adjacent to other special characters, `Edit` can silently no-op. Diagnostic is `awk … | od -c | head` to confirm byte state. Recovery is a one-line `sed -i 's/<pattern>/<fix>/'` — survives embedding the brace inside a JSX expression.
