@@ -1,0 +1,10 @@
+Silent Co-Driver — preset extraction run
+Timestamp: 2026-08-10T19:14:37
+Backend endpoint used for live verification: http://localhost:8000/analyze
+
+Total verified presets: 4
+
+  2023_Bahrain_Grand_Prix_CHALEC01_16_20230305_154208: driver=CHALEC01 racing_number=16 gp=2023 Bahrain Grand Prix date=2023-03-05 method=exact lap_dur=97.972s lap_num=24
+  2023_Bahrain_Grand_Prix_GEORUS01_63_20230305_155430: driver=GEORUS01 racing_number=63 gp=2023 Bahrain Grand Prix date=2023-03-05 method=exact lap_dur=101.035s lap_num=31
+  2023_Bahrain_Grand_Prix_LANNOR01_4_20230305_151548: driver=LANNOR01 racing_number=4 gp=2023 Bahrain Grand Prix date=2023-03-05 method=exact lap_dur=100.857s lap_num=8
+  2023_Bahrain_Grand_Prix_LEWHAM01_44_20230305_151725: driver=LEWHAM01 racing_number=44 gp=2023 Bahrain Grand Prix date=2023-03-05 method=exact lap_dur=100.323s lap_num=9

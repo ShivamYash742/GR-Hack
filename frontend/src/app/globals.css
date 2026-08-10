@@ -1,26 +1,117 @@
 @import "tailwindcss";
 
+/*
+ * Silent Co-Driver — pit-wall telemetry design tokens.
+ * Locked in frontend/CLAUDE.md and frontend/AGENTS.md.
+ * Do not introduce other saturated accents, icons-as-badges, or rounded cards.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --base: #0d1117;
+  --panel: #161b22;
+  --border: #2a313c;
+  --sector-purple: #9d4edd;
+  --sector-green: #00d268;
+  --sector-yellow: #ffd93d;
+  --alert-red: #e10600;
+  --body: #c9d1d9;
+  --muted: #6e7681;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-base: var(--base);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
+  --color-sector-purple: var(--sector-purple);
+  --color-sector-green: var(--sector-green);
+  --color-sector-yellow: var(--sector-yellow);
+  --color-alert-red: var(--alert-red);
+  --color-body: var(--body);
+  --color-muted: var(--muted);
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--base);
+  color: var(--body);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular numerals for any numeric column. */
+.tabnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Hairline border with no radius — never box-shadow cards. */
+.hairline {
+  border: 1px solid var(--border);
+  border-radius: 0;
+}
+
+/* Sector-color chips with one shared visual language. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  border-radius: 0;
+}
+.chip::before {
+  content: "";
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  background: currentColor;
+  border-radius: 0;
+}
+
+.chip--purple {
+  color: var(--sector-purple);
+}
+.chip--green {
+  color: var(--sector-green);
+}
+.chip--yellow {
+  color: var(--sector-yellow);
+}
+.chip--red {
+  color: var(--alert-red);
+}
+.chip--muted {
+  color: var(--muted);
+  border-color: var(--muted);
+}
+
+/* Drop-zone treatment — toggle with [data-active="true"]. */
+.dropzone {
+  border: 1px dashed var(--border);
+  background: var(--panel);
+  transition: border-color 120ms linear, background 120ms linear;
+}
+.dropzone[data-active="true"] {
+  border-color: var(--sector-yellow);
+  background: #1a201e;
+}
+
+/* The native audio controls look bad against a dark panel — flatten them. */
+audio {
+  width: 100%;
+  height: 28px;
+  filter: invert(0.9) hue-rotate(180deg);
+}
+
+/* Subtle data-row separator — same hairline language as panels, no shadows. */
+.row {
+  border-bottom: 1px solid var(--border);
+}
+.row:last-child {
+  border-bottom: 0;
 }
