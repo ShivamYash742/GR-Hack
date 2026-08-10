@@ -210,13 +210,13 @@ cd frontend && npm run dev
 
 ## Current Status
 
-Last updated: 2026-08-09.
+Last updated: 2026-08-10.
 
 - [x] Pre-flight verification run — result: COMPLETED (see notes below)
 - [x] Repo scaffolded
-- [ ] Backend: models loading correctly
-- [ ] Backend: `/analyze` endpoint live
-- [ ] Backend: OpenF1 chain wired in
+- [x] Backend: models loading correctly
+- [x] Backend: `/analyze` endpoint live
+- [x] Backend: OpenF1 chain wired in
 - [ ] Frontend: skeleton + upload wired to backend
 - [ ] Frontend: transcript + badge + chart
 - [ ] Deployed: frontend
@@ -238,3 +238,10 @@ fresh session useful instead of guessing.)
 3. Emotion model loads successfully and returns all 8 RAVDESS labels, but shows low confidence/uniform distribution (~0.11-0.14) on real F1 radio audio, confirming the domain gap noted in the plan
 4. The MikCil dataset includes a 'racing_number' column that may correspond to OpenF1 driver_number - needs verification against OpenF1 /v1/drivers endpoint but could eliminate need for static driver_id mapping
 5. Part 2 failed on 2018 data (expected, OpenF1 only has 2023+) - will test with 2023+ sample tomorrow
+
+2026-08-10: Day 1 backend implementation complete:
+1. Both models (Whisper-small and wav2vec2 emotion) load successfully at startup via FastAPI lifespan
+2. `/analyze` endpoint accepts file + Form fields, returns structured JSON with transcript, emotion (raw_label, score, bucket), and lap data
+3. OpenF1 correlation engine implemented with 3-hop lookup (session → driver → laps) + session-tertile fallback
+4. Test pipeline runs successfully: 5/5 clips tested, 5 exact-lap matches, all succeeded
+5. Models show domain gap on real F1 radio (uniform ~0.13 confidence across 8 labels) - as expected from pre-flight

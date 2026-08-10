@@ -1,6 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.responses import JSONResponse
+import librosa
+import io
+import numpy as np
 
-app = FastAPI(title="Silent Co-Driver", version="0.1.0")
+from . import models
+from .openf1 import correlate
+from .schemas.analysis import AnalyzeResponse, EmotionResult, LapResult
+
+
+app = FastAPI(title="Silent Co-Driver", version="0.1.0", lifespan=models.lifespan)
 
 
 @app.get("/health")
@@ -8,7 +17,41 @@ async def health():
     return {"status": "ok"}
 
 
-@app.post("/analyze")
-async def analyze():
-    # TODO: Day 1 - implement audio upload, transcription, emotion classification, OpenF1 lookup
-    return {"message": "Not implemented yet"}
+@app.post("/analyze", response_model=AnalyzeResponse)
+async def analyze(
+    file: UploadFile = File(...),
+    driver_id: str = Form(...),
+    grand_prix: str = Form(...),
+    session_date: str = Form(...),
+    message_timestamp: str = Form(...),
+    racing_number: int = Form(None),
+):
+    # Validate file type
+    if not file.filename.lower().endswith((".wav", ".mp3")):
+        return JSONResponse({"error": "Only .wav or .mp3 files accepted"}, status_code=400)
+
+    # Read and decode audio
+    contents = await file.read()
+    audio_array, _ = librosa.load(io.BytesIO(contents), sr=16000, mono=True)
+    audio_array = audio_array.astype(np.float32)
+
+    # 1. Transcription
+    transcript = models.whisper_pipe.transcribe(audio_array, 16000)
+
+    # 2. Emotion classification
+    emotion_result = models.emotion_pipe.classify(audio_array, 16000)
+
+    # 3. OpenF1 correlation
+    lap_result = correlate(
+        driver_id=driver_id,
+        racing_number=racing_number,
+        grand_prix=grand_prix,
+        session_date=session_date,
+        message_timestamp=message_timestamp,
+    )
+
+    return AnalyzeResponse(
+        transcript=transcript,
+        emotion=EmotionResult(**emotion_result),
+        lap=LapResult(**lap_result),
+    )
