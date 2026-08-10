@@ -1,0 +1,32 @@
+# Render Blueprint for Silent Co-Driver.
+#
+# Drop this whole repo into Render as a "Blueprint" and it will create
+# one web service (`silent-co-driver-backend`) running the FastAPI app
+# from `backend/`. Free tier is sufficient for the demo — cold start is
+# ~30–90 s after the 15-min idle spin-down.
+#
+# Manual setup if not using Blueprint:
+#   • Service type: Web Service (Docker)
+#   • Root Directory: backend
+#   • Dockerfile Path: backend/Dockerfile (Render auto-detects)
+#   • Health check path: /health  (added in Step 1 of DAY2_PROMPT.md)
+#   • Plan: Free (or Starter if you want zero spin-down)
+
+services:
+  - type: web
+    name: silent-co-driver-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: HF_HOME
+        value: /opt/render/.cache/huggingface
+      # Demo safe-mode: refuse to fabricate lap times even if OpenF1 is
+      # unavailable. The frontend already shows "no lap data" for this.
+      - key: SILENT_CO_DRIVER_DEMO_MODE
+        value: "1"

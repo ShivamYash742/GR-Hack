@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import librosa
 import io
 import numpy as np
@@ -9,12 +10,23 @@ from .openf1 import correlate
 from .schemas.analysis import AnalyzeResponse, EmotionResult, LapResult
 
 
-app = FastAPI(title="Silent Co-Driver", version="0.1.0", lifespan=models.lifespan)
+APP_VERSION = "0.1.0"
+
+app = FastAPI(title="Silent Co-Driver", version=APP_VERSION, lifespan=models.lifespan)
+
+# CORS — Next.js frontend runs on a different origin locally and in prod.
+# Permissive in dev; tighten to known origins once the Vercel URL is fixed.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": APP_VERSION}
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)

@@ -1,0 +1,29 @@
+# Slim requirements for cloud deploy (Render). Drops the CUDA stack and
+# other dev-only artifacts and pins torch to the CPU wheel index so the
+# nvidia-* / cuda-* / triton packages in the dev `requirements.txt` don't
+# drag in ~5 GB of GPU libraries on a free-tier web service.
+#
+# Local GPU dev: keep using `requirements.txt` unchanged.
+# Cloud deploy: `pip install -r requirements-prod.txt`.
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Web
+fastapi==0.141.1
+uvicorn[standard]==0.52.1
+python-multipart==0.0.32
+python-dotenv==1.2.2
+pydantic==2.13.4
+
+# Audio / ML — CPU-only torch keeps the image under ~1.5 GB on Render.
+torch==2.13.0+cpu
+torchaudio==2.13.0+cpu
+transformers==5.14.1
+tokenizers==0.22.2
+huggingface_hub==1.27.0
+soundfile==0.14.0
+librosa==0.11.0
+numpy==2.4.6
+
+# OpenF1 client (used at request time, no API key required).
+httpx==0.28.1
