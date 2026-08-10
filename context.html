@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Silent Co-Driver — Project Architecture & Context Map</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0D1117;
+      --panel: #161B22;
+      --panel-hover: #1C2128;
+      --border: #2A313C;
+      --text: #C9D1D9;
+      --muted: #6E7681;
+      --purple: #9D4EDD;
+      --green: #00D268;
+      --yellow: #FFD93D;
+      --red: #E10600;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: "JetBrains Mono", "IBM Plex Mono", "SF Mono", Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      padding: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-f1 {
+      background: var(--red);
+      color: #FFFFFF;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    p.subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 6px;
+      font-family: var(--font-mono);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 20px;
+    }
+
+    .card h2 {
+      font-size: 14px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      color: #FFFFFF;
+      margin-top: 12px;
+      margin-bottom: 8px;
+    }
+
+    ul, ol {
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+
+    li {
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    code, pre {
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    pre {
+      background: #090D11;
+      border: 1px solid var(--border);
+      padding: 14px;
+      overflow-x: auto;
+      color: #E6EDE3;
+      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+
+    code {
+      background: rgba(110, 118, 129, 0.15);
+      padding: 2px 6px;
+      color: #58A6FF;
+    }
+
+    .diagram-container {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 20px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+
+    .diagram-container h2 {
+      font-size: 14px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    th {
+      background: #090D11;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .sector-purple { color: var(--purple); font-weight: bold; }
+    .sector-green { color: var(--green); font-weight: bold; }
+    .sector-yellow { color: var(--yellow); font-weight: bold; }
+    .sector-red { color: var(--red); font-weight: bold; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      margin-top: 40px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>
+      Silent Co-Driver
+      <span class="badge-f1">Project Context & Architecture Graph</span>
+    </h1>
+    <p class="subtitle">F1 Team Radio AI Telemetry & Sentiment Analyzer · Context Map for AI Coding Agents</p>
+  </header>
+
+  <!-- OVERVIEW & HARD RULES -->
+  <div class="grid">
+    <div class="card">
+      <h2>Project Overview</h2>
+      <p style="font-size: 13px; margin-bottom: 10px;">
+        <strong>Silent Co-Driver</strong> is an F1 team-radio sentiment & telemetry correlation tool built for a Hugging Face hackathon.
+      </p>
+      <ul>
+        <li><strong>Input:</strong> Driver team radio audio (.wav / .mp3) + metadata.</li>
+        <li><strong>Transcription:</strong> <code>openai/whisper-small</code> running in-process via Hugging Face <code>transformers</code>.</li>
+        <li><strong>Emotion Analysis:</strong> <code>ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition</code> mapped to <code>calm</code>, <code>stressed</code>, <code>tired</code>.</li>
+        <li><strong>Telemetry Correlation:</strong> OpenF1 REST API (<code>api.openf1.org/v1</code>) 3-step lookup chain matching exact lap times or fallbacks.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Hard Rules (Locked Guidelines)</h2>
+      <ol style="font-size: 12px; color: #F0F6FC;">
+        <li><strong style="color: var(--red);">No Live HF Inference APIs:</strong> Both Whisper and wav2vec2 models MUST run in-process inside FastAPI at startup.</li>
+        <li><strong style="color: var(--red);">No Fabricated Lap Data:</strong> If OpenF1 correlation fails, display "no lap data" — NEVER interpolate or guess a number.</li>
+        <li><strong style="color: var(--red);">Strict Pit-Wall Design System:</strong> Palette is strictly locked to `#0D1117` base, `#161B22` panel, `#2A313C` border, and F1 sector timing colors (`#9D4EDD`, `#00D268`, `#FFD93D`, `#E10600`).</li>
+        <li><strong style="color: var(--red);">No Fuzzy Driver Matching:</strong> `racing_number` validates directly against OpenF1 `/v1/drivers`.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- DIAGRAM 1: HIGH LEVEL ARCHITECTURE -->
+  <div class="diagram-container">
+    <h2>1. High-Level Component & System Architecture Graph</h2>
+    <div class="mermaid">
+    graph TD
+        subgraph Client ["Client / UI Layer (frontend/src)"]
+            UI["Next.js App Router (src/app/page.tsx)"]
+            Preset["Preset Selector (src/data/presets.ts)"]
+            Uploader["Audio Uploader (src/components/AudioUploader.tsx)"]
+            Badge["Emotion Badge (src/components/EmotionBadge.tsx)"]
+            Chart["Telemetry Chart (src/components/LapCorrelationChart.tsx)"]
+            Transcript["Transcript Panel (src/components/TranscriptPanel.tsx)"]
+        end
+
+        subgraph API_Client ["Frontend API Bridge"]
+            API_Lib["HTTP Client (src/lib/api.ts)"]
+        end
+
+        subgraph Backend ["FastAPI Backend (backend/app)"]
+            Router["POST /analyze Endpoint (main.py)"]
+            Health["GET /health Endpoint (main.py)"]
+            AudioProc["16kHz Audio Resampler (librosa / numpy)"]
+        end
+
+        subgraph Models ["In-Process Models (backend/app/models)"]
+            Whisper["Whisper Small (openai/whisper-small)"]
+            Wav2Vec2["wav2vec2 Emotion (ehcalabres/wav2vec2-lg-xlsr-en)"]
+            EmotionMap["8 RAVDESS Labels → calm / stressed / tired"]
+        end
+
+        subgraph Telemetry ["OpenF1 Engine (backend/app/openf1)"]
+            Correlate["correlate() Hub"]
+            Sessions["GET /v1/sessions (sessions.py)"]
+            Drivers["GET /v1/drivers (drivers.py)"]
+            Laps["GET /v1/laps & Bracket Match (laps.py)"]
+        end
+
+        Preset --> UI
+        Uploader --> UI
+        UI --> API_Lib
+        API_Lib --> Router
+        API_Lib --> Health
+
+        Router --> AudioProc
+        AudioProc --> Whisper
+        AudioProc --> Wav2Vec2
+        Wav2Vec2 --> EmotionMap
+
+        Router --> Correlate
+        Correlate --> Sessions --> Drivers --> Laps --> Correlate
+
+        Whisper --> Router
+        EmotionMap --> Router
+        Correlate --> Router
+
+        Router --> API_Lib --> UI
+        UI --> Transcript & Badge & Chart
+    </div>
+  </div>
+
+  <!-- DIAGRAM 2: DATA FLOW -->
+  <div class="diagram-container">
+    <h2>2. Data Execution Sequence & Pipeline Graph</h2>
+    <div class="mermaid">
+    sequenceDiagram
+        autonumber
+        actor User
+        participant UI as Next.js Dashboard (page.tsx)
+        participant API as API Client (api.ts)
+        participant FastAPI as FastAPI Server (main.py)
+        participant Whisper as Whisper Model (whisper.py)
+        participant Emotion as wav2vec2 Model (emotion.py)
+        participant OpenF1 as OpenF1 Engine (openf1/laps.py)
+
+        User->>UI: Select Preset / Upload Audio + Submit
+        UI->>API: analyzeAudio(file, metadata)
+        API->>FastAPI: POST /analyze (FormData)
+
+        par Audio Transcription
+            FastAPI->>Whisper: transcribe(audio_16kHz)
+            Whisper-->>FastAPI: Transcript string
+        and Speech Emotion Classification
+            FastAPI->>Emotion: classify(audio_16kHz)
+            Emotion-->>FastAPI: Raw label + score + mapped bucket
+        and OpenF1 Telemetry Lookup
+            FastAPI->>OpenF1: correlate(driver, gp, date, timestamp)
+            OpenF1-->>FastAPI: Exact / Fallback Lap timing data
+        end
+
+        FastAPI-->>API: AnalyzeResponse JSON
+        API-->>UI: Update Application State
+        UI->>User: Render Transcript, Sector Badge & Recharts Overlay
+    </div>
+  </div>
+
+  <!-- REPO FILE MAP & STRUCTURE -->
+  <div class="card" style="margin-bottom: 24px;">
+    <h2>3. Complete Repository Map & File Responsibilities</h2>
+    <pre><code>/home/shivammishra/Pictures/GR-hack/
+├── CLAUDE.md                             # Source of truth for repo rules, API contract, stack, and status log
+├── context.html                          # Complete visual architecture, data flow & system context map
+├── PRODUCT.md / DAY1prompt.md / DAY2_PROMPT.md  # Competition specifications & design parameters
+│
+├── backend/                              # FASTAPI PYTHON BACKEND
+│   ├── app/
+│   │   ├── main.py                       # [ENTRY] FastAPI app setup, CORS, POST /analyze, GET /health
+│   │   ├── models/
+│   │   │   ├── __init__.py               # Lifespan manager pre-loading Whisper & wav2vec2 into memory
+│   │   │   ├── whisper.py                # Transformers pipeline wrapper for openai/whisper-small
+│   │   │   └── emotion.py                # Transformers pipeline wrapper for wav2vec2 (with facebook feature extractor fix)
+│   │   ├── openf1/
+│   │   │   ├── __init__.py               # correlate() orchestrator
+│   │   │   ├── sessions.py               # Session lookup by year and location (GET /v1/sessions)
+│   │   │   ├── drivers.py                # Driver number validation against session (GET /v1/drivers)
+│   │   │   └── laps.py                   # Lap retrieval & timestamp bracket matching (GET /v1/laps)
+│   │   ├── mapping/
+│   │   │   ├── emotions.py               # RAVDESS 8-class mapping to (calm, stressed, tired)
+│   │   │   └── driver_ids.py             # Legacy static ID dictionary (kept for reference)
+│   │   └── schemas/
+│   │       └── analysis.py               # Pydantic data schemas (AnalyzeResponse, EmotionResult, LapResult)
+│   ├── requirements.txt                  # Python dependencies (fastapi, torch, transformers, librosa)
+│   └── Dockerfile                        # Production container setup
+│
+└── frontend/                             # NEXT.JS FRONTEND (App Router + Tailwind CSS)
+    ├── src/
+    │   ├── app/
+    │   │   ├── page.tsx                  # [ENTRY] Main telemetry dashboard, pipeline state machine
+    │   │   ├── layout.tsx                # Root HTML layout with Inter & JetBrains Mono fonts
+    │   │   └── globals.css               # Design system CSS variables & tokens
+    │   ├── components/
+    │   │   ├── AudioUploader.tsx         # Drag & drop audio payload component
+    │   │   ├── EmotionBadge.tsx          # Sector-colored emotion chip + confidence tooltip
+    │   │   ├── LapCorrelationChart.tsx   # Recharts telemetry timing chart (exact, fallback, no-data states)
+    │   │   ├── MetadataForm.tsx          # Manual race metadata inputs (collapsible)
+    │   │   └── TranscriptPanel.tsx       # Radio transcript display container
+    │   ├── data/
+    │   │   └── presets.ts                # Verified MikCil dataset sample presets
+    │   ├── lib/
+    │   │   └── api.ts                    # REST API client (POST /analyze, GET /health)
+    │   └── types/
+    │       └── analysis.ts               # TypeScript types aligned with backend schemas
+    ├── package.json                      # Frontend dependencies (next, react, recharts, tailwindcss)
+    └── next.config.ts                    # Next.js configuration</code></pre>
+  </div>
+
+  <!-- API CONTRACT SCHEMAS -->
+  <div class="grid">
+    <div class="card">
+      <h2>API Endpoint Contract</h2>
+      <p style="font-size: 12px; margin-bottom: 8px;"><code>POST /analyze</code> (Multipart Form Data)</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>file</code></td><td>File</td><td>.wav or .mp3 audio file</td></tr>
+          <tr><td><code>driver_id</code></td><td>string</td><td>Driver identifier (e.g. "verstappen")</td></tr>
+          <tr><td><code>racing_number</code></td><td>int</td><td>Driver number (e.g. 1, 16, 44)</td></tr>
+          <tr><td><code>grand_prix</code></td><td>string</td><td>Circuit/GP name (e.g. "Monaco")</td></tr>
+          <tr><td><code>session_date</code></td><td>string</td><td>Session date ISO (YYYY-MM-DD)</td></tr>
+          <tr><td><code>message_timestamp</code></td><td>string</td><td>Radio message timestamp ISO</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>JSON Response Schema</h2>
+      <pre><code>{
+  "transcript": "Box box box for soft tires",
+  "emotion": {
+    "raw_label": "angry",
+    "score": 0.9412,
+    "bucket": "stressed" // calm | stressed | tired
+  },
+  "lap": {
+    "lap_number": 42,
+    "lap_duration": 74.521,
+    "method": "exact", // exact | fallback_early | fallback_mid | fallback_late | error
+    "driver_mean": 75.120,
+    "session_mean": 75.890,
+    "error": null
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- DESIGN SYSTEM TOKENS -->
+  <div class="card" style="margin-bottom: 24px;">
+    <h2>4. Design Tokens & Sector Palette</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Token</th>
+          <th>Hex Code</th>
+          <th>Usage & State</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>--bg</code></td><td><code>#0D1117</code></td><td>Page background</td></tr>
+        <tr><td><code>--panel</code></td><td><code>#161B22</code></td><td>Card / Container background</td></tr>
+        <tr><td><code>--border</code></td><td><code>#2A313C</code></td><td>Hairline borders (1px solid)</td></tr>
+        <tr><td><span class="sector-purple">Sector-Purple</span></td><td><code>#9D4EDD</code></td><td>Exact lap match indicator</td></tr>
+        <tr><td><span class="sector-green">Sector-Green</span></td><td><code>#00D268</code></td><td>Calm emotion state</td></tr>
+        <tr><td><span class="sector-yellow">Sector-Yellow</span></td><td><code>#FFD93D</code></td><td>Fallback / Approximate match state</td></tr>
+        <tr><td><span class="sector-red">Alert-Red</span></td><td><code>#E10600</code></td><td>Stressed emotion state (Primary F1 accent)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- RUNNING THE PROJECT -->
+  <div class="card" style="margin-bottom: 24px;">
+    <h2>5. How to Run & Verify</h2>
+    <pre><code># 1. Start FastAPI Backend (runs on port 8000)
+cd backend
+source venv/bin/activate
+uvicorn app.main:app --reload --port 8000
+
+# 2. Start Next.js Frontend (runs on port 3000)
+cd frontend
+npm run dev
+
+# 3. Verify Health Endpoint
+curl http://localhost:8000/health
+# Output: {"status":"ok","version":"0.1.0"}</code></pre>
+  </div>
+
+  <footer>
+    <span>Silent Co-Driver Architecture Map</span>
+    <span>Generated for Antigravity AI Context & Session Continuity</span>
+  </footer>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#161B22',
+        primaryColor: '#1F2937',
+        primaryTextColor: '#C9D1D9',
+        primaryBorderColor: '#2A313C',
+        lineColor: '#58A6FF',
+        secondaryColor: '#0D1117',
+        tertiaryColor: '#161B22'
+      }
+    });
+  </script>
+</body>
+</html>
