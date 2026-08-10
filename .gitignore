@@ -21,3 +21,5 @@ out/
 
 # OS
 .DS_Store
+# Reference PDFs (build plan / spec) — kept on disk, not in the repo.
+*.pdf
