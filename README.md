@@ -32,9 +32,9 @@ OpenF1 chain end-to-end.
 ## Architecture
 
 ```
-┌─────────────┐    multipart    ┌────────────────────────────────────┐
-│   Browser   │ ──────────────► │           FastAPI backend          │
-│  (Next.js)  │ ◄────────────── │                                    │
+┌─────────────┐    multipart     ┌────────────────────────────────────┐
+│   Browser   │ ──────────────►  │           FastAPI backend          │
+│  (Next.js)  │ ◄──────────────  │                                    │
 └─────────────┘   analyzed JSON  │  ┌──────────────────────────────┐  │
                                  │  │ Whisper-small (in-process)   │  │
                                  │  └──────────────────────────────┘  │
