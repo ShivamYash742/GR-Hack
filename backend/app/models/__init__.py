@@ -19,16 +19,23 @@ def get_device() -> int:
     return -1
 
 
-# Lazy-load helpers (called from lifespan)
-from .whisper import load_whisper, WhisperModel
-from .emotion import load_emotion, EmotionModel
+def get_whisper():
+    global whisper_pipe
+    if whisper_pipe is None:
+        device = get_device()
+        whisper_pipe = WhisperModel(load_whisper(device))
+    return whisper_pipe
+
+
+def get_emotion():
+    global emotion_pipe
+    if emotion_pipe is None:
+        device = get_device()
+        emotion_pipe = EmotionModel(load_emotion(device))
+    return emotion_pipe
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global whisper_pipe, emotion_pipe
-    device = get_device()
-    whisper_pipe = WhisperModel(load_whisper(device))
-    emotion_pipe = EmotionModel(load_emotion(device))
+    # Do not eager-load models at startup so server binds to port instantly (under 50 MB RAM)
     yield
-    # cleanup if needed

@@ -8,12 +8,13 @@ import os
 
 def load_whisper(device: int):
     token = os.getenv("HF_TOKEN")
+    model_name = os.getenv("WHISPER_MODEL", "openai/whisper-tiny")
     kwargs = {"device": device}
     if token:
         kwargs["token"] = token
     return pipeline(
         "automatic-speech-recognition",
-        model="openai/whisper-small",
+        model=model_name,
         **kwargs,
     )
 
