@@ -1,7 +1,8 @@
 import type { AnalyzeParams, AnalyzeResponse } from "@/types/analysis";
 
-const API_BASE_URL =
+const rawUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://gr-hack.onrender.com";
+const API_BASE_URL = rawUrl.trim().replace(/\/+$/, "");
 
 export class AnalyzeError extends Error {
   readonly status: number;
@@ -29,11 +30,13 @@ export async function analyzeAudio(
   try {
     resp = await fetch(`${API_BASE_URL}/analyze`, {
       method: "POST",
+      mode: "cors",
       body: form,
     });
-  } catch (err) {
+  } catch (err: any) {
+    console.error("analyzeAudio fetch error:", err);
     throw new AnalyzeError(
-      `Backend unreachable at ${API_BASE_URL}. If it's a hosted instance, this might be a cold-start — give it 30s.`,
+      `Backend unreachable at ${API_BASE_URL} (${err?.message || err || "Network Error"}). If it's a hosted instance, this might be a cold-start — give it 30s.`,
       0,
     );
   }
@@ -56,11 +59,12 @@ export async function analyzeAudio(
 
 export async function pingBackend(): Promise<{ ok: boolean; version?: string }> {
   try {
-    const resp = await fetch(`${API_BASE_URL}/health`);
+    const resp = await fetch(`${API_BASE_URL}/health`, { mode: "cors" });
     if (!resp.ok) return { ok: false };
     const body = await resp.json();
     return { ok: body.status === "ok", version: body.version };
-  } catch {
+  } catch (err) {
+    console.error("pingBackend error:", err);
     return { ok: false };
   }
 }
