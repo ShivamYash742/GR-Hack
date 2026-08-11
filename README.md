@@ -16,6 +16,8 @@ If OpenF1 has no data for the session (pre-2023, unindexed timestamp,
 API down), the UI renders a **"no lap data"** panel with a reason
 field. The pipeline never invents lap times.
 
+> 💡 **Complete System Context & Architecture Map**: Open [`context.html`](file:///home/shivammishra/Pictures/GR-hack/context.html) for an interactive visual architecture graph, data execution sequence diagram, API schemas, and complete project context.
+
 ---
 
 ## Demo
