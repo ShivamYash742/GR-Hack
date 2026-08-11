@@ -8,13 +8,18 @@
 :root {
   --base: #0d1117;
   --panel: #161b22;
-  --border: #2a313c;
+  --border: #21262d;
+  --border-dim: #1c2128;
   --sector-purple: #9d4edd;
+  --sector-purple-dim: rgba(157, 78, 221, 0.08);
   --sector-green: #00d268;
+  --sector-green-dim: rgba(0, 210, 104, 0.08);
   --sector-yellow: #ffd93d;
+  --sector-yellow-dim: rgba(255, 217, 61, 0.08);
   --alert-red: #e10600;
   --body: #c9d1d9;
   --muted: #6e7681;
+  --dim: #3d4450;
 }
 
 @theme inline {
@@ -27,16 +32,15 @@
   --color-alert-red: var(--alert-red);
   --color-body: var(--body);
   --color-muted: var(--muted);
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 html,
 body {
   background: var(--base);
   color: var(--body);
-  font-family: var(--font-sans);
+  font-family: var(--font-sans), "Rajdhani", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.01em;
 }
 
 /* Tabular numerals for any numeric column. */
@@ -72,23 +76,11 @@ body {
   background: currentColor;
   border-radius: 0;
 }
-
-.chip--purple {
-  color: var(--sector-purple);
-}
-.chip--green {
-  color: var(--sector-green);
-}
-.chip--yellow {
-  color: var(--sector-yellow);
-}
-.chip--red {
-  color: var(--alert-red);
-}
-.chip--muted {
-  color: var(--muted);
-  border-color: var(--muted);
-}
+.chip--purple { color: var(--sector-purple); }
+.chip--green  { color: var(--sector-green);  }
+.chip--yellow { color: var(--sector-yellow); }
+.chip--red    { color: var(--alert-red);     }
+.chip--muted  { color: var(--muted); border-color: var(--muted); }
 
 /* Drop-zone treatment — toggle with [data-active="true"]. */
 .dropzone {
@@ -98,20 +90,169 @@ body {
 }
 .dropzone[data-active="true"] {
   border-color: var(--sector-yellow);
-  background: #1a201e;
+  background: rgba(255, 217, 61, 0.03);
 }
 
-/* The native audio controls look bad against a dark panel — flatten them. */
+/* Native audio controls. */
 audio {
   width: 100%;
   height: 28px;
   filter: invert(0.9) hue-rotate(180deg);
 }
 
-/* Subtle data-row separator — same hairline language as panels, no shadows. */
-.row {
-  border-bottom: 1px solid var(--border);
+/* Subtle data-row separator. */
+.row { border-bottom: 1px solid var(--border); }
+.row:last-child { border-bottom: 0; }
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
 }
-.row:last-child {
-  border-bottom: 0;
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--panel) 25%,
+    var(--border) 50%,
+    var(--panel) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes blink-cursor {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.cursor-blink { animation: blink-cursor 1s step-end infinite; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+.pulse-dot { animation: pulse-dot 900ms ease-in-out infinite; }
+
+/* ─── Pipeline rail ─────────────────────────────────────────────────────── */
+
+.stage-node {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color 200ms ease;
+  flex-shrink: 0;
+}
+.stage-node__dot {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--dim);
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 200ms ease, border-color 200ms ease;
+}
+.stage-node--done  .stage-node__dot { background: var(--sector-green);  border-color: var(--sector-green);  }
+.stage-node--done  { color: var(--sector-green);  }
+.stage-node--active .stage-node__dot { background: var(--sector-yellow); border-color: var(--sector-yellow); animation: pulse-dot 700ms ease-in-out infinite; }
+.stage-node--active { color: var(--sector-yellow); }
+.stage-node--error .stage-node__dot  { background: var(--alert-red);    border-color: var(--alert-red);    }
+.stage-node--error  { color: var(--alert-red); }
+
+.stage-connector       { flex: 1; height: 1px; background: var(--border); }
+.stage-connector--done { background: var(--sector-green); }
+
+/* ─── Confidence bar ────────────────────────────────────────────────────── */
+
+.confidence-track {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.confidence-fill {
+  position: absolute;
+  left: 0; top: 0; height: 100%;
+  transition: width 700ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+
+.header-scanlines {
+  background-image: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(255,255,255,0.012) 3px, rgba(255,255,255,0.012) 4px
+  );
+}
+
+/* ─── Timing board (preset strip) ───────────────────────────────────────── */
+
+.timing-tile {
+  display: flex;
+  align-items: stretch;
+  background: transparent;
+  transition: background 120ms ease;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.timing-tile:hover { background: rgba(157, 78, 221, 0.04); }
+.timing-tile--active { background: rgba(157, 78, 221, 0.05); }
+.timing-tile--loading { pointer-events: none; }
+
+.timing-tile__num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.75rem;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: rgba(157, 78, 221, 0.05);
+}
+
+/* ─── Ghost empty states ─────────────────────────────────────────────────── */
+
+.ghost-bar {
+  height: 2px;
+  background: var(--border-dim);
+}
+
+/* ─── CSS chevron (no Unicode glyph) ─────────────────────────────────────── */
+
+.chevron {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 1px solid var(--muted);
+  border-bottom: 1px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform 200ms ease;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+.chevron--open { transform: rotate(225deg); margin-bottom: -2px; }
+
+/* ─── Accordion ──────────────────────────────────────────────────────────── */
+
+.accordion-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 200ms ease; }
+.accordion-body--open { grid-template-rows: 1fr; }
+.accordion-inner { overflow: hidden; }
+
+/* ─── Radio log ──────────────────────────────────────────────────────────── */
+
+.radio-log { border-left: 1px solid var(--sector-purple); padding-left: 1rem; }
+
+/* ─── Section label ──────────────────────────────────────────────────────── */
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
