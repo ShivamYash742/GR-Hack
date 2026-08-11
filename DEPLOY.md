@@ -64,7 +64,11 @@ to Option B.
 4. **Env vars** (Project Settings → Environment Variables):
    | key | value |
    |---|---|
-   | `NEXT_PUBLIC_API_BASE_URL` | the full Render URL from step 1, including `https://` and no trailing slash |
+   | `BACKEND_API_URL` | the full Render URL from step 1, including `https://` and no trailing slash |
+
+   `NEXT_PUBLIC_API_BASE_URL` is optional in production. If omitted, the
+   browser calls `/api/backend/*` on the Vercel domain and Vercel rewrites
+   that request to `BACKEND_API_URL`.
 
 5. Click **Deploy**. ~1 min for first build.
 
@@ -79,9 +83,10 @@ Once both services are up:
    `GET /health` includes `"demo_mode": true` for free-tier Render.
 3. Click any of the four preset cards. Expect the transcript,
    emotion badge, and Lap chart to populate in 5–15 s.
-4. If the frontend reports "Backend · unreachable", check that the
-   Render URL in Vercel's env is correct and that CORS is on (it is —
-   see `backend/app/main.py` Step 1).
+4. If the frontend reports "Backend · unreachable", check that
+   `BACKEND_API_URL` in Vercel is correct, redeploy the frontend after
+   changing env vars, and verify `https://<your-vercel-domain>/api/backend/health`
+   returns the same JSON as Render `/health`.
 
 ---
 

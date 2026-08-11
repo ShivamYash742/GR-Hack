@@ -1,6 +1,6 @@
 import type { AnalyzeParams, AnalyzeResponse } from "@/types/analysis";
 
-const DEFAULT_API_BASE_URL = "https://gr-hack.onrender.com";
+const DEFAULT_API_BASE_URL = "/api/backend";
 
 const LOCAL_FALLBACK_URL = "http://127.0.0.1:8000";
 const ANALYZE_TIMEOUT_MS = 90_000;
@@ -8,7 +8,20 @@ const HEALTH_TIMEOUT_MS = 8_000;
 
 function normalizeApiBaseUrl(raw: string | undefined): string {
   const trimmed = (raw || DEFAULT_API_BASE_URL).trim().replace(/\/+$/, "");
+  if (trimmed.startsWith("/")) {
+    return trimmed;
+  }
   if (/^https?:\/\//i.test(trimmed)) {
+    if (process.env.NODE_ENV === "production") {
+      try {
+        const { hostname } = new URL(trimmed);
+        if (["localhost", "127.0.0.1"].includes(hostname)) {
+          return DEFAULT_API_BASE_URL;
+        }
+      } catch {
+        return DEFAULT_API_BASE_URL;
+      }
+    }
     return trimmed;
   }
   return `https://${trimmed}`;

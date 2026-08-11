@@ -39,6 +39,11 @@ async def health():
     }
 
 
+@app.api_route("/", methods=["GET", "HEAD"])
+async def root():
+    return await health()
+
+
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(
     file: UploadFile = File(...),
