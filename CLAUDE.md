@@ -7,10 +7,7 @@ overriding silently.
 
 ## Hard rules — do not violate these
 
-1. Do NOT call Hugging Face's hosted Inference API from the main app's
-   demo path. Both models run in-process inside the FastAPI backend,
-   loaded once at startup. Live external calls are a rate-limit/timeout
-   risk during judging.
+1. Use Hugging Face API key (`HF_TOKEN` configured in `.env`) for authenticating with Hugging Face Hub APIs and model pipelines.
 2. Do NOT fabricate or interpolate lap-time data. If OpenF1 correlation
    fails for a clip, the API/UI says "no lap data" — never a guessed
    number.

@@ -36,7 +36,7 @@ The genuinely AI-shaped piece of work is the **two-model composition and the 3-h
 ## Capabilities and Constraints
 
 **Hard rules** (cannot violate, source: CLAUDE.md):
-1. Models run in-process in the FastAPI backend, loaded once at startup.
+1. Models use Hugging Face API key (`HF_TOKEN` in `.env`) for authenticating with Hugging Face Hub APIs and model pipelines.
 2. Never fabricate or interpolate lap-time data. "No lap data" is a legitimate result.
 3. Do not fuzzy-match driver names against OpenF1 at runtime — MikCil `racing_number` validates directly against OpenF1 `driver_number`.
 4. The static `mapping/driver_ids.py` dict is dead code (kept as documented fallback); source of truth is racing_number → /v1/drivers validation.
