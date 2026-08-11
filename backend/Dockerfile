@@ -1,13 +1,10 @@
 # Render Dockerfile for the Silent Co-Driver backend.
 #
 # Notes:
-# - We deliberately do NOT pre-download the HF models during the build
-#   — Whisper-small + wav2vec2 together are ~2 GB. Instead we let the
-#   FastAPI lifespan in `app/main.py` load them on first cold start, and
-#   we cache via $HF_HOME on the disk that Render mounts at /opt/render.
-# - First request after spin-up pays the model-load cost (~30–90 s on the
-#   free tier). Per CLAUDE.md §Demo-day operational notes, warm the
-#   service 5–10 min before presenting.
+# - We deliberately do NOT pre-download the HF models during the build.
+#   Whisper-small + wav2vec2 together are too heavy for free-tier Render.
+# - The image defaults to SILENT_CO_DRIVER_DEMO_MODE=1 so /analyze stays
+#   responsive on 512 MB instances. Set it to 0 only on a larger host.
 # - Slim base image keeps the final layer under ~600 MB before torch.
 
 FROM python:3.11-slim AS base
@@ -17,7 +14,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     HF_HOME=/tmp/huggingface \
-    TRANSFORMERS_CACHE=/tmp/huggingface
+    TRANSFORMERS_CACHE=/tmp/huggingface \
+    SILENT_CO_DRIVER_DEMO_MODE=1
 
 WORKDIR /opt/render/app
 

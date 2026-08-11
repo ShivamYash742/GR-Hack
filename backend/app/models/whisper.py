@@ -1,15 +1,17 @@
-from transformers import pipeline
-from transformers.pipelines.audio_utils import ffmpeg_read
 import numpy as np
 
 
 import os
 
+from ..config import demo_mode_enabled
+
 
 def load_whisper(device: int):
-    if os.getenv("SILENT_CO_DRIVER_DEMO_MODE") == "1":
+    if demo_mode_enabled():
         return None  # Skip model loading on free 512MB RAM host to prevent OOM
     try:
+        from transformers import pipeline
+
         token = os.getenv("HF_TOKEN")
         model_name = os.getenv("WHISPER_MODEL", "openai/whisper-tiny")
         kwargs = {"device": device}
@@ -29,7 +31,7 @@ class WhisperModel:
         self.pipe = pipe
 
     def transcribe(self, audio_array: np.ndarray, sampling_rate: int = 16000) -> str:
-        if self.pipe is None or os.getenv("SILENT_CO_DRIVER_DEMO_MODE") == "1":
+        if self.pipe is None or demo_mode_enabled():
             return "Box box box. Check tire wear and pit window."
         try:
             result = self.pipe({"array": audio_array, "sampling_rate": sampling_rate})

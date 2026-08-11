@@ -31,7 +31,7 @@ Both pieces are pre-built; no source edits needed at deploy time.
    `requirements-prod.txt` so re-builds are fast.
 4. After the service is up, hit
    `https://silent-co-driver-backend.onrender.com/health` — expect
-   `{"status":"ok","version":"0.1.0"}`.
+   `{"status":"ok","version":"0.1.0","demo_mode":true}` on Render free tier.
 5. **Copy the public URL** — you'll paste it into Vercel.
 
 If Blueprint detection fails (often the case on free Render), fall back
@@ -64,7 +64,7 @@ to Option B.
 4. **Env vars** (Project Settings → Environment Variables):
    | key | value |
    |---|---|
-   | `NEXT_PUBLIC_API_BASE_URL` | the Render URL from step 1 (no trailing slash) |
+   | `NEXT_PUBLIC_API_BASE_URL` | the full Render URL from step 1, including `https://` and no trailing slash |
 
 5. Click **Deploy**. ~1 min for first build.
 
@@ -75,7 +75,8 @@ to Option B.
 Once both services are up:
 
 1. Open the Vercel URL in a browser.
-2. Confirm the header chip says **Backend · 0.1.0** (green).
+2. Confirm the header chip says **Backend · 0.1.0** (green), and
+   `GET /health` includes `"demo_mode": true` for free-tier Render.
 3. Click any of the four preset cards. Expect the transcript,
    emotion badge, and Lap chart to populate in 5–15 s.
 4. If the frontend reports "Backend · unreachable", check that the

@@ -1,10 +1,59 @@
 import type { AnalyzeParams, AnalyzeResponse } from "@/types/analysis";
 
-const PRIMARY_URL = (
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://gr-hack.onrender.com"
-).trim().replace(/\/+$/, "");
+const DEFAULT_API_BASE_URL = "https://gr-hack.onrender.com";
 
 const LOCAL_FALLBACK_URL = "http://127.0.0.1:8000";
+const ANALYZE_TIMEOUT_MS = 90_000;
+const HEALTH_TIMEOUT_MS = 8_000;
+
+function normalizeApiBaseUrl(raw: string | undefined): string {
+  const trimmed = (raw || DEFAULT_API_BASE_URL).trim().replace(/\/+$/, "");
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+
+function shouldTryLocalFallback(): boolean {
+  if (process.env.NODE_ENV !== "development") {
+    return false;
+  }
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+}
+
+function apiUrlsToTry(): string[] {
+  const urlsToTry = [activeBaseUrl];
+  if (shouldTryLocalFallback() && !urlsToTry.includes(LOCAL_FALLBACK_URL)) {
+    urlsToTry.push(LOCAL_FALLBACK_URL);
+  }
+  if (!urlsToTry.includes(PRIMARY_URL)) {
+    urlsToTry.push(PRIMARY_URL);
+  }
+  return urlsToTry;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error || "Network Error");
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+const PRIMARY_URL = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
 
 let activeBaseUrl = PRIMARY_URL;
 
@@ -30,27 +79,21 @@ export async function analyzeAudio(
     form.append("racing_number", String(params.racing_number));
   }
 
-  const urlsToTry = [activeBaseUrl];
-  if (!urlsToTry.includes(LOCAL_FALLBACK_URL)) {
-    urlsToTry.push(LOCAL_FALLBACK_URL);
-  }
-  if (!urlsToTry.includes(PRIMARY_URL)) {
-    urlsToTry.push(PRIMARY_URL);
-  }
+  const urlsToTry = apiUrlsToTry();
 
   let resp: Response | null = null;
-  let lastErr: any = null;
+  let lastErr: unknown = null;
 
   for (const baseUrl of urlsToTry) {
     try {
-      resp = await fetch(`${baseUrl}/analyze`, {
+      resp = await fetchWithTimeout(`${baseUrl}/analyze`, {
         method: "POST",
         mode: "cors",
         body: form,
-      });
+      }, ANALYZE_TIMEOUT_MS);
       activeBaseUrl = baseUrl;
       break;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn(`analyzeAudio fetch failed for ${baseUrl}, trying fallback if available...`, err);
       lastErr = err;
     }
@@ -58,7 +101,7 @@ export async function analyzeAudio(
 
   if (!resp) {
     throw new AnalyzeError(
-      `Backend unreachable at ${activeBaseUrl} (and fallback ${LOCAL_FALLBACK_URL}). Original error: ${lastErr?.message || lastErr || "Network Error"}.`,
+      `Backend unreachable at ${activeBaseUrl}. Original error: ${errorMessage(lastErr)}.`,
       0,
     );
   }
@@ -73,6 +116,12 @@ export async function analyzeAudio(
       500,
     );
   }
+  if (resp.status === 502 || resp.status === 503 || resp.status === 504) {
+    throw new AnalyzeError(
+      `Backend gateway timeout (${resp.status}). On Render, confirm SILENT_CO_DRIVER_DEMO_MODE=1 or redeploy the updated Dockerfile.`,
+      resp.status,
+    );
+  }
   if (!resp.ok) {
     throw new AnalyzeError(`Unexpected status ${resp.status}`, resp.status);
   }
@@ -80,17 +129,15 @@ export async function analyzeAudio(
 }
 
 export async function pingBackend(): Promise<{ ok: boolean; version?: string }> {
-  const urlsToTry = [activeBaseUrl];
-  if (!urlsToTry.includes(LOCAL_FALLBACK_URL)) {
-    urlsToTry.push(LOCAL_FALLBACK_URL);
-  }
-  if (!urlsToTry.includes(PRIMARY_URL)) {
-    urlsToTry.push(PRIMARY_URL);
-  }
+  const urlsToTry = apiUrlsToTry();
 
   for (const baseUrl of urlsToTry) {
     try {
-      const resp = await fetch(`${baseUrl}/health`, { mode: "cors" });
+      const resp = await fetchWithTimeout(
+        `${baseUrl}/health`,
+        { mode: "cors" },
+        HEALTH_TIMEOUT_MS,
+      );
       if (resp.ok) {
         const body = await resp.json();
         if (body.status === "ok") {

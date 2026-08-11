@@ -11,6 +11,7 @@ import io
 import numpy as np
 
 from . import models
+from .config import demo_mode_enabled
 from .openf1 import correlate
 from .schemas.analysis import AnalyzeResponse, EmotionResult, LapResult
 
@@ -31,7 +32,11 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": APP_VERSION}
+    return {
+        "status": "ok",
+        "version": APP_VERSION,
+        "demo_mode": demo_mode_enabled(),
+    }
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)

@@ -1,4 +1,3 @@
-from transformers import Wav2Vec2FeatureExtractor, pipeline
 import numpy as np
 
 # CRITICAL HF FIX: ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition
@@ -6,11 +5,15 @@ import numpy as np
 # Load feature extractor explicitly from base model instead.
 import os
 
+from ..config import demo_mode_enabled
+
 
 def load_emotion(device: int):
-    if os.getenv("SILENT_CO_DRIVER_DEMO_MODE") == "1":
+    if demo_mode_enabled():
         return None  # Skip 1.2GB model download on free-tier 512MB RAM host
     try:
+        from transformers import Wav2Vec2FeatureExtractor, pipeline
+
         token = os.getenv("HF_TOKEN")
         feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
             "facebook/wav2vec2-large-xlsr-53",
@@ -40,7 +43,7 @@ class EmotionModel:
         self.pipe = pipe
 
     def classify(self, audio_array: np.ndarray, sampling_rate: int = 16000) -> dict:
-        if self.pipe is None or os.getenv("SILENT_CO_DRIVER_DEMO_MODE") == "1":
+        if self.pipe is None or demo_mode_enabled():
             return {
                 "raw_label": "neutral",
                 "score": 0.138,
