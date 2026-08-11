@@ -3,6 +3,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import torch
 
+from .whisper import load_whisper, WhisperModel
+from .emotion import load_emotion, EmotionModel
+
 # These will be initialized in lifespan
 whisper_pipe = None
 emotion_pipe = None
