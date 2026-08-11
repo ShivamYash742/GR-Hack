@@ -28,12 +28,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps first so changes to app source don't bust the cache.
-COPY requirements-prod.txt .
-RUN pip install -r requirements-prod.txt
+# Copy requirements-prod.txt (works if build context is root or backend/)
+COPY requirements-prod.txt* backend/requirements-prod.txt* ./
+RUN if [ -f requirements-prod.txt ]; then pip install -r requirements-prod.txt; \
+    elif [ -f backend/requirements-prod.txt ]; then pip install -r backend/requirements-prod.txt; fi
 
-# Now the app source.
-COPY ./app ./app
+# Copy application source (works if context is root or backend/)
+COPY . ./src_tmp/
+RUN if [ -d ./src_tmp/app ]; then cp -r ./src_tmp/app ./app; \
+    elif [ -d ./src_tmp/backend/app ]; then cp -r ./src_tmp/backend/app ./app; fi \
+    && rm -rf ./src_tmp
 
 EXPOSE 8000
 
