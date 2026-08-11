@@ -1,7 +1,7 @@
 import type { AnalyzeParams, AnalyzeResponse } from "@/types/analysis";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://gr-hack.onrender.com";
 
 export class AnalyzeError extends Error {
   readonly status: number;
