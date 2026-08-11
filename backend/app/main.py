@@ -47,28 +47,33 @@ async def analyze(
     if not file.filename.lower().endswith((".wav", ".mp3")):
         return JSONResponse({"error": "Only .wav or .mp3 files accepted"}, status_code=400)
 
-    # Read and decode audio
-    contents = await file.read()
-    audio_array, _ = librosa.load(io.BytesIO(contents), sr=16000, mono=True)
-    audio_array = audio_array.astype(np.float32)
+    try:
+        # Read and decode audio
+        contents = await file.read()
+        audio_array, _ = librosa.load(io.BytesIO(contents), sr=16000, mono=True)
+        audio_array = audio_array.astype(np.float32)
 
-    # 1. Transcription
-    transcript = models.get_whisper().transcribe(audio_array, 16000)
+        # 1. Transcription
+        transcript = models.get_whisper().transcribe(audio_array, 16000)
 
-    # 2. Emotion classification
-    emotion_result = models.get_emotion().classify(audio_array, 16000)
+        # 2. Emotion classification
+        emotion_result = models.get_emotion().classify(audio_array, 16000)
 
-    # 3. OpenF1 correlation
-    lap_result = correlate(
-        driver_id=driver_id,
-        racing_number=racing_number,
-        grand_prix=grand_prix,
-        session_date=session_date,
-        message_timestamp=message_timestamp,
-    )
+        # 3. OpenF1 correlation
+        lap_result = correlate(
+            driver_id=driver_id,
+            racing_number=racing_number,
+            grand_prix=grand_prix,
+            session_date=session_date,
+            message_timestamp=message_timestamp,
+        )
 
-    return AnalyzeResponse(
-        transcript=transcript,
-        emotion=EmotionResult(**emotion_result),
-        lap=LapResult(**lap_result),
-    )
+        return AnalyzeResponse(
+            transcript=transcript,
+            emotion=EmotionResult(**emotion_result),
+            lap=LapResult(**lap_result),
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"error": f"Analysis failed: {str(e)}"}, status_code=500)
