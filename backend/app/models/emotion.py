@@ -38,30 +38,28 @@ MAP_8_TO_3 = {
 }
 
 
+PRESET_EMOTIONS = {
+    "CHALEC01": {"raw_label": "disgust", "score": 0.134, "bucket": "stressed"},
+    "FERALO01": {"raw_label": "neutral", "score": 0.134, "bucket": "tired"},
+    "GEORUS01": {"raw_label": "surprised", "score": 0.133, "bucket": "stressed"},
+    "LANNOR01": {"raw_label": "happy", "score": 0.134, "bucket": "calm"},
+    "SERPER01": {"raw_label": "happy", "score": 0.133, "bucket": "calm"},
+    "CARSAI01": {"raw_label": "neutral", "score": 0.136, "bucket": "tired"},
+    "LEWHAM01": {"raw_label": "happy", "score": 0.135, "bucket": "calm"},
+    "MAXVER01": {"raw_label": "neutral", "score": 0.139, "bucket": "tired"},
+}
+
+
 def dynamic_demo_emotion(audio_array: np.ndarray, sampling_rate: int = 16000, driver_id: str = "") -> dict:
     if audio_array is None or len(audio_array) == 0:
-        return {"raw_label": "neutral", "score": 0.72, "bucket": "tired"}
+        return {"raw_label": "neutral", "score": 0.138, "bucket": "tired"}
 
-    duration = len(audio_array) / float(sampling_rate)
     driver_upper = (driver_id or "").upper().strip()
 
-    # Preset clip matching by driver & clip duration
-    if "CHALEC01" in driver_upper or (0.2 <= duration <= 1.0):
-        return {"raw_label": "calm", "score": 0.88, "bucket": "calm"}
-    if "FERALO01" in driver_upper:
-        return {"raw_label": "angry", "score": 0.93, "bucket": "stressed"}
-    if "GEORUS01" in driver_upper:
-        return {"raw_label": "fearful", "score": 0.81, "bucket": "stressed"}
-    if "LANNOR01" in driver_upper:
-        return {"raw_label": "calm", "score": 0.86, "bucket": "calm"}
-    if "SERPER01" in driver_upper:
-        return {"raw_label": "neutral", "score": 0.78, "bucket": "tired"}
-    if "CARSAI01" in driver_upper:
-        return {"raw_label": "angry", "score": 0.95, "bucket": "stressed"}
-    if "LEWHAM01" in driver_upper:
-        return {"raw_label": "sad", "score": 0.82, "bucket": "tired"}
-    if "MAXVER01" in driver_upper:
-        return {"raw_label": "angry", "score": 0.89, "bucket": "stressed"}
+    # Exact driver preset lookup
+    for key, emo in PRESET_EMOTIONS.items():
+        if key in driver_upper:
+            return emo
 
     # Dynamic acoustic analysis for custom uploads
     rms = float(np.sqrt(np.mean(audio_array ** 2)))
