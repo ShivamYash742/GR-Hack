@@ -1,8 +1,12 @@
 import type { AnalyzeParams, AnalyzeResponse } from "@/types/analysis";
 
-const rawUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://gr-hack.onrender.com";
-const API_BASE_URL = rawUrl.trim().replace(/\/+$/, "");
+const PRIMARY_URL = (
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://gr-hack.onrender.com"
+).trim().replace(/\/+$/, "");
+
+const LOCAL_FALLBACK_URL = "http://127.0.0.1:8000";
+
+let activeBaseUrl = PRIMARY_URL;
 
 export class AnalyzeError extends Error {
   readonly status: number;
@@ -26,17 +30,35 @@ export async function analyzeAudio(
     form.append("racing_number", String(params.racing_number));
   }
 
-  let resp: Response;
-  try {
-    resp = await fetch(`${API_BASE_URL}/analyze`, {
-      method: "POST",
-      mode: "cors",
-      body: form,
-    });
-  } catch (err: any) {
-    console.error("analyzeAudio fetch error:", err);
+  const urlsToTry = [activeBaseUrl];
+  if (!urlsToTry.includes(LOCAL_FALLBACK_URL)) {
+    urlsToTry.push(LOCAL_FALLBACK_URL);
+  }
+  if (!urlsToTry.includes(PRIMARY_URL)) {
+    urlsToTry.push(PRIMARY_URL);
+  }
+
+  let resp: Response | null = null;
+  let lastErr: any = null;
+
+  for (const baseUrl of urlsToTry) {
+    try {
+      resp = await fetch(`${baseUrl}/analyze`, {
+        method: "POST",
+        mode: "cors",
+        body: form,
+      });
+      activeBaseUrl = baseUrl;
+      break;
+    } catch (err: any) {
+      console.warn(`analyzeAudio fetch failed for ${baseUrl}, trying fallback if available...`, err);
+      lastErr = err;
+    }
+  }
+
+  if (!resp) {
     throw new AnalyzeError(
-      `Backend unreachable at ${API_BASE_URL} (${err?.message || err || "Network Error"}). If it's a hosted instance, this might be a cold-start — give it 30s.`,
+      `Backend unreachable at ${activeBaseUrl} (and fallback ${LOCAL_FALLBACK_URL}). Original error: ${lastErr?.message || lastErr || "Network Error"}.`,
       0,
     );
   }
@@ -58,13 +80,28 @@ export async function analyzeAudio(
 }
 
 export async function pingBackend(): Promise<{ ok: boolean; version?: string }> {
-  try {
-    const resp = await fetch(`${API_BASE_URL}/health`, { mode: "cors" });
-    if (!resp.ok) return { ok: false };
-    const body = await resp.json();
-    return { ok: body.status === "ok", version: body.version };
-  } catch (err) {
-    console.error("pingBackend error:", err);
-    return { ok: false };
+  const urlsToTry = [activeBaseUrl];
+  if (!urlsToTry.includes(LOCAL_FALLBACK_URL)) {
+    urlsToTry.push(LOCAL_FALLBACK_URL);
   }
+  if (!urlsToTry.includes(PRIMARY_URL)) {
+    urlsToTry.push(PRIMARY_URL);
+  }
+
+  for (const baseUrl of urlsToTry) {
+    try {
+      const resp = await fetch(`${baseUrl}/health`, { mode: "cors" });
+      if (resp.ok) {
+        const body = await resp.json();
+        if (body.status === "ok") {
+          activeBaseUrl = baseUrl;
+          return { ok: true, version: body.version };
+        }
+      }
+    } catch (err) {
+      console.warn(`pingBackend failed for ${baseUrl}`, err);
+    }
+  }
+
+  return { ok: false };
 }
