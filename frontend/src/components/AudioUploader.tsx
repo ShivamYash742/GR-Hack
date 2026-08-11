@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -19,6 +19,13 @@ export default function AudioUploader({ file, onFile }: AudioUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const audioUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
 
   const accept = useCallback((raw: File) => {
     setError(null);
@@ -98,7 +105,7 @@ export default function AudioUploader({ file, onFile }: AudioUploaderProps) {
                 <audio
                   controls
                   preload="metadata"
-                  src={URL.createObjectURL(file)}
+                  src={audioUrl ?? undefined}
                   className="w-full mt-2"
                 />
               )}

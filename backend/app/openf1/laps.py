@@ -1,6 +1,10 @@
+import logging
 import requests
 from datetime import datetime
-from typing import Optional, List
+from functools import lru_cache
+from typing import Optional, List, Tuple
+
+logger = logging.getLogger(__name__)
 
 OPENF1_BASE_URL = "https://api.openf1.org/v1"
 OPENF1_TIMEOUT = 10  # seconds
@@ -30,7 +34,9 @@ def parse_timestamp(value) -> Optional[datetime]:
     return None
 
 
-def get_laps(session_key: int, driver_number: int) -> List[dict]:
+@lru_cache(maxsize=64)
+def get_laps(session_key: int, driver_number: int) -> Tuple[dict, ...]:
+    """Fetch laps from OpenF1 API. Results are cached since historical lap data is immutable."""
     try:
         resp = requests.get(
             f"{OPENF1_BASE_URL}/laps",
@@ -39,7 +45,7 @@ def get_laps(session_key: int, driver_number: int) -> List[dict]:
         )
         data = resp.json()
         if not isinstance(data, list):
-            return []
+            return ()
         # Filter laps with valid date_start and lap_duration
         valid = [
             lap for lap in data
@@ -48,12 +54,14 @@ def get_laps(session_key: int, driver_number: int) -> List[dict]:
             and lap["lap_duration"] > 0
         ]
         valid.sort(key=lambda l: str(l.get("date_start", "")))
-        return valid
-    except Exception:
-        return []
+        # Return as tuple for lru_cache hashability (callers treat as list-like)
+        return tuple(valid)
+    except Exception as e:
+        logger.warning("get_laps failed for session=%s driver=%s: %s", session_key, driver_number, e)
+        return ()
 
 
-def bracket_match(laps: List[dict], target_ts: datetime) -> Optional[dict]:
+def bracket_match(laps, target_ts: datetime) -> Optional[dict]:
     """
     Returns the latest lap with date_start <= target_ts.
     """
@@ -67,7 +75,7 @@ def bracket_match(laps: List[dict], target_ts: datetime) -> Optional[dict]:
     return matched
 
 
-def fallback_bucket(session_key: int, driver_number: int, target_ts: datetime, laps: List[dict]) -> dict:
+def fallback_bucket(session_key: int, driver_number: int, target_ts: datetime, laps) -> dict:
     """
     Session-tertile fallback when exact bracket match fails.
     Returns dict matching LapResult schema with method='fallback_<tertile>'.
@@ -82,11 +90,18 @@ def fallback_bucket(session_key: int, driver_number: int, target_ts: datetime, l
             "error": "No lap data available for session",
         }
 
-    # Determine session time range from laps
-    lap_times = [parse_timestamp(l.get("date_start")) for l in laps if parse_timestamp(l.get("date_start"))]
-    if not lap_times:
+    # Pre-parse all timestamps ONCE to avoid repeated parsing and NoneType crashes
+    parsed_laps = []
+    for lap in laps:
+        ts = parse_timestamp(lap.get("date_start"))
+        if ts is not None:
+            parsed_laps.append((lap, ts))
+
+    if not parsed_laps:
         return {"lap_number": None, "lap_duration": None, "method": "error", "driver_mean": None, "session_mean": None, "error": "No valid lap timestamps"}
 
+    # Determine session time range from pre-parsed timestamps
+    lap_times = [ts for _, ts in parsed_laps]
     session_start = min(lap_times)
     session_end = max(lap_times)
     session_duration = (session_end - session_start).total_seconds()
@@ -103,13 +118,13 @@ def fallback_bucket(session_key: int, driver_number: int, target_ts: datetime, l
     else:
         bucket_name = "fallback_late"
 
-    # Filter laps in this bucket
+    # Filter laps in this bucket using pre-parsed timestamps (safe from NoneType)
     if bucket_name == "fallback_mid":
-        bucket_laps = [l for l in laps if t1 < parse_timestamp(l.get("date_start")).timestamp() <= t2]
+        bucket_laps = [lap for lap, ts in parsed_laps if t1 < ts.timestamp() <= t2]
     elif bucket_name == "fallback_early":
-        bucket_laps = [l for l in laps if parse_timestamp(l.get("date_start")).timestamp() <= t1]
+        bucket_laps = [lap for lap, ts in parsed_laps if ts.timestamp() <= t1]
     else:
-        bucket_laps = [l for l in laps if parse_timestamp(l.get("date_start")).timestamp() > t2]
+        bucket_laps = [lap for lap, ts in parsed_laps if ts.timestamp() > t2]
 
     driver_laps = [l for l in bucket_laps if l.get("driver_number") == driver_number]
 

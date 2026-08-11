@@ -126,7 +126,15 @@ export async function analyzeAudio(
   if (!resp.ok) {
     throw new AnalyzeError(`Unexpected status ${resp.status}`, resp.status);
   }
-  return resp.json() as Promise<AnalyzeResponse>;
+  try {
+    return await resp.json() as AnalyzeResponse;
+  } catch {
+    const text = await resp.text().catch(() => "(unreadable)");
+    throw new AnalyzeError(
+      `Backend returned invalid JSON (status ${resp.status}). Body preview: ${text.slice(0, 120)}`,
+      resp.status,
+    );
+  }
 }
 
 export async function pingBackend(): Promise<{ ok: boolean; version?: string; url?: string }> {
@@ -140,7 +148,7 @@ export async function pingBackend(): Promise<{ ok: boolean; version?: string; ur
         HEALTH_TIMEOUT_MS,
       );
       if (resp.ok) {
-        const body = await resp.json();
+        const body = await resp.json().catch(() => null);
         if (body && (body.status === "ok" || body.status === "healthy")) {
           activeBaseUrl = baseUrl;
           return { ok: true, version: body.version, url: baseUrl };

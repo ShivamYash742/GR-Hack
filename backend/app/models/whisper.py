@@ -1,7 +1,10 @@
+import logging
 import numpy as np
 import os
 
 from ..config import demo_mode_enabled
+
+logger = logging.getLogger(__name__)
 
 
 def load_whisper(device: int):
@@ -20,7 +23,8 @@ def load_whisper(device: int):
             model=model_name,
             **kwargs,
         )
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to load Whisper model: %s", e)
         return None
 
 
@@ -77,6 +81,7 @@ class WhisperModel:
             result = self.pipe({"array": audio_array, "sampling_rate": sampling_rate})
             text = result.get("text", "").strip()
             return text if text else dynamic_demo_transcribe(audio_array, sampling_rate, driver_id)
-        except Exception:
+        except Exception as e:
+            logger.warning("Whisper transcription failed, falling back to demo: %s", e)
             return dynamic_demo_transcribe(audio_array, sampling_rate, driver_id)
 

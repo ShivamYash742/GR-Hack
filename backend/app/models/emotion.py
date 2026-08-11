@@ -1,4 +1,7 @@
+import logging
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 # CRITICAL HF FIX: ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition
 # has an invalid preprocessor_config on HuggingFace Hub.
@@ -27,7 +30,8 @@ def load_emotion(device: int):
             model="ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition",
             **kwargs,
         )
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to load emotion model: %s", e)
         return None
 
 # 8-to-3 bucket mapping (LOCKED — from CLAUDE.md)
@@ -87,6 +91,7 @@ class EmotionModel:
                 "score": float(top["score"]),
                 "bucket": MAP_8_TO_3.get(raw_label, "tired"),
             }
-        except Exception:
+        except Exception as e:
+            logger.warning("Emotion classification failed, falling back to demo: %s", e)
             return dynamic_demo_emotion(audio_array, sampling_rate, driver_id)
 

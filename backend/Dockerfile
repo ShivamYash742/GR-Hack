@@ -37,7 +37,7 @@ RUN if [ -d ./src_tmp/app ]; then cp -r ./src_tmp/app ./app; \
     elif [ -d ./src_tmp/backend/app ]; then cp -r ./src_tmp/backend/app ./app; fi \
     && rm -rf ./src_tmp
 
-EXPOSE 8000
+EXPOSE 7860
 
-# Render sets $PORT. uvicorn binds to all interfaces so the proxy works.
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Render/HF Spaces sets $PORT. uvicorn binds to all interfaces so the proxy works.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-7860}"]

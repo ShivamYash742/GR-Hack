@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import AudioUploader from "@/components/AudioUploader";
 import EmotionBadge from "@/components/EmotionBadge";
-import LapCorrelationChart from "@/components/LapCorrelationChart";
+import dynamic from "next/dynamic";
+const LapCorrelationChart = dynamic(() => import("@/components/LapCorrelationChart"), { ssr: false });
 import MetadataForm, { type MetadataValues } from "@/components/MetadataForm";
 import TranscriptPanel from "@/components/TranscriptPanel";
 import { PRESETS, type Preset } from "@/data/presets";
