@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import AudioUploader from "@/components/AudioUploader";
 import EmotionBadge from "@/components/EmotionBadge";
@@ -86,15 +86,35 @@ export default function HomePage() {
   const [backend, setBackend]       = useState<"online" | "offline" | "checking">("checking");
   const [backendVer, setBackendVer] = useState<string | null>(null);
 
+  const checkBackend = useCallback(async () => {
+    setBackend("checking");
+    const { ok, version } = await pingBackend();
+    setBackend(ok ? "online" : "offline");
+    if (ok && version) {
+      setBackendVer(version);
+    }
+    return ok;
+  }, []);
+
   useEffect(() => {
     let dead = false;
-    pingBackend().then(({ ok, version }) => {
+    let timer: NodeJS.Timeout | null = null;
+
+    async function poll() {
       if (dead) return;
-      setBackend(ok ? "online" : "offline");
-      setBackendVer(version ?? null);
-    });
-    return () => { dead = true; };
-  }, []);
+      const ok = await checkBackend();
+      if (dead) return;
+      const intervalMs = ok ? 30_000 : 5_000;
+      timer = setTimeout(poll, intervalMs);
+    }
+
+    poll();
+
+    return () => {
+      dead = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [checkBackend]);
 
   const running = !["idle", "done", "error"].includes(stage);
 
@@ -123,6 +143,7 @@ export default function HomePage() {
         message_timestamp: meta.messageTimestamp,
       });
       setResult(data);
+      setBackend("online");
       setStage("done");
     } catch (e) {
       setError(
@@ -161,7 +182,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col flex-1 min-h-screen">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <AppHeader status={backend} version={backendVer} />
+      <AppHeader status={backend} version={backendVer} onRefresh={checkBackend} />
 
       {/* ── Timing board preset strip ───────────────────────────────────────── */}
       <div className="border-b border-[var(--border)]">
@@ -316,7 +337,15 @@ export default function HomePage() {
 
 /* ─── Header ─────────────────────────────────────────────────────────────── */
 
-function AppHeader({ status, version }: { status: string; version: string | null }) {
+function AppHeader({
+  status,
+  version,
+  onRefresh,
+}: {
+  status: string;
+  version: string | null;
+  onRefresh: () => void;
+}) {
   const dotColor =
     status === "online"   ? "var(--sector-green)"  :
     status === "checking" ? "var(--sector-yellow)" : "var(--muted)";
@@ -340,14 +369,20 @@ function AppHeader({ status, version }: { status: string; version: string | null
         </div>
       </div>
 
-      <div className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.1em]">
+      <button
+        type="button"
+        onClick={onRefresh}
+        title="Click to check backend status"
+        className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:opacity-80 transition-opacity border border-transparent hover:border-[var(--border)] px-2 py-1"
+      >
         <span className="text-[var(--muted)]">Backend</span>
         <span
           className={dotAnim}
           style={{ display: "inline-block", width: 8, height: 8, background: dotColor, flexShrink: 0 }}
         />
         <span className="tabnum" style={{ color: dotColor }}>{label}</span>
-      </div>
+      </button>
     </header>
   );
 }
+

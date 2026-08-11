@@ -1,51 +1,39 @@
 import type { AnalyzeParams, AnalyzeResponse } from "@/types/analysis";
 
 const DEFAULT_API_BASE_URL = "/api/backend";
-
-const LOCAL_FALLBACK_URL = "http://127.0.0.1:8000";
+const HOSTED_FALLBACK_URL = "https://gr-hack.onrender.com";
 const ANALYZE_TIMEOUT_MS = 90_000;
-const HEALTH_TIMEOUT_MS = 8_000;
+const HEALTH_TIMEOUT_MS = 25_000;
 
 function normalizeApiBaseUrl(raw: string | undefined): string {
-  const trimmed = (raw || DEFAULT_API_BASE_URL).trim().replace(/\/+$/, "");
+  const trimmed = (raw || HOSTED_FALLBACK_URL).trim().replace(/\/+$/, "");
   if (trimmed.startsWith("/")) {
     return trimmed;
   }
   if (/^https?:\/\//i.test(trimmed)) {
-    if (process.env.NODE_ENV === "production") {
-      try {
-        const { hostname } = new URL(trimmed);
-        if (["localhost", "127.0.0.1"].includes(hostname)) {
-          return DEFAULT_API_BASE_URL;
-        }
-      } catch {
-        return DEFAULT_API_BASE_URL;
-      }
-    }
     return trimmed;
   }
   return `https://${trimmed}`;
 }
 
-function shouldTryLocalFallback(): boolean {
-  if (process.env.NODE_ENV !== "development") {
-    return false;
-  }
-  if (typeof window === "undefined") {
-    return false;
-  }
-  return ["localhost", "127.0.0.1"].includes(window.location.hostname);
-}
-
 function apiUrlsToTry(): string[] {
-  const urlsToTry = [activeBaseUrl];
-  if (shouldTryLocalFallback() && !urlsToTry.includes(LOCAL_FALLBACK_URL)) {
-    urlsToTry.push(LOCAL_FALLBACK_URL);
-  }
-  if (!urlsToTry.includes(PRIMARY_URL)) {
-    urlsToTry.push(PRIMARY_URL);
-  }
-  return urlsToTry;
+  const urls: string[] = [];
+
+  const pushCandidate = (raw: string | undefined) => {
+    if (!raw) return;
+    const normalized = normalizeApiBaseUrl(raw);
+    if (normalized && !urls.includes(normalized)) {
+      urls.push(normalized);
+    }
+  };
+
+  // Strictly target hosted Render backend (and Next.js proxy route to Render)
+  pushCandidate(activeBaseUrl);
+  pushCandidate(PRIMARY_URL);
+  pushCandidate(HOSTED_FALLBACK_URL);
+  pushCandidate(DEFAULT_API_BASE_URL);
+
+  return urls;
 }
 
 function errorMessage(error: unknown): string {
@@ -141,7 +129,7 @@ export async function analyzeAudio(
   return resp.json() as Promise<AnalyzeResponse>;
 }
 
-export async function pingBackend(): Promise<{ ok: boolean; version?: string }> {
+export async function pingBackend(): Promise<{ ok: boolean; version?: string; url?: string }> {
   const urlsToTry = apiUrlsToTry();
 
   for (const baseUrl of urlsToTry) {
@@ -153,9 +141,9 @@ export async function pingBackend(): Promise<{ ok: boolean; version?: string }> 
       );
       if (resp.ok) {
         const body = await resp.json();
-        if (body.status === "ok") {
+        if (body && (body.status === "ok" || body.status === "healthy")) {
           activeBaseUrl = baseUrl;
-          return { ok: true, version: body.version };
+          return { ok: true, version: body.version, url: baseUrl };
         }
       }
     } catch (err) {

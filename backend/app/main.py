@@ -64,10 +64,10 @@ async def analyze(
         audio_array = audio_array.astype(np.float32)
 
         # 1. Transcription
-        transcript = models.get_whisper().transcribe(audio_array, 16000)
+        transcript = models.get_whisper().transcribe(audio_array, 16000, driver_id=driver_id)
 
         # 2. Emotion classification
-        emotion_result = models.get_emotion().classify(audio_array, 16000)
+        emotion_result = models.get_emotion().classify(audio_array, 16000, driver_id=driver_id)
 
         # 3. OpenF1 correlation
         lap_result = correlate(
