@@ -8,8 +8,15 @@ whisper_pipe = None
 emotion_pipe = None
 
 
+import os
+
+
 def get_device() -> int:
-    return 0 if torch.cuda.is_available() else -1
+    # Default to CPU (-1) for local stability to prevent CUDA OutOfMemory crashes
+    # Pass USE_GPU=1 if running on a dedicated GPU server with sufficient VRAM
+    if os.getenv("USE_GPU", "0") == "1" and torch.cuda.is_available():
+        return 0
+    return -1
 
 
 # Lazy-load helpers (called from lifespan)

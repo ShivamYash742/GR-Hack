@@ -4,15 +4,22 @@ import numpy as np
 # CRITICAL HF FIX: ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition
 # has an invalid preprocessor_config on HuggingFace Hub.
 # Load feature extractor explicitly from base model instead.
+import os
+
+
 def load_emotion(device: int):
+    token = os.getenv("HF_TOKEN")
     feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
-        "facebook/wav2vec2-large-xlsr-53"
+        "facebook/wav2vec2-large-xlsr-53",
+        token=token if token else None,
     )
+    kwargs = {"device": device, "feature_extractor": feature_extractor}
+    if token:
+        kwargs["token"] = token
     return pipeline(
         "audio-classification",
         model="ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition",
-        feature_extractor=feature_extractor,
-        device=device,
+        **kwargs,
     )
 
 # 8-to-3 bucket mapping (LOCKED — from CLAUDE.md)

@@ -3,11 +3,18 @@ from transformers.pipelines.audio_utils import ffmpeg_read
 import numpy as np
 
 
+import os
+
+
 def load_whisper(device: int):
+    token = os.getenv("HF_TOKEN")
+    kwargs = {"device": device}
+    if token:
+        kwargs["token"] = token
     return pipeline(
         "automatic-speech-recognition",
         model="openai/whisper-small",
-        device=device,
+        **kwargs,
     )
 
 
