@@ -27,7 +27,7 @@ def load_emotion(device: int):
             kwargs["token"] = token
         return pipeline(
             "audio-classification",
-            model="ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition",
+            model="r-f/wav2vec-english-speech-emotion-recognition",
             **kwargs,
         )
     except Exception as e:
@@ -36,7 +36,7 @@ def load_emotion(device: int):
 
 # 8-to-3 bucket mapping (LOCKED — from CLAUDE.md)
 MAP_8_TO_3 = {
-    "angry": "stressed", "fearful": "stressed", "disgust": "stressed", "surprised": "stressed",
+    "angry": "stressed", "fearful": "stressed", "fear": "stressed", "disgust": "stressed", "surprised": "stressed", "surprise": "stressed",
     "calm": "calm", "happy": "calm",
     "neutral": "tired", "sad": "tired",
 }

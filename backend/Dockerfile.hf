@@ -1,0 +1,37 @@
+FROM python:3.11-slim
+
+# Set environment variables
+# DEMO_MODE=0 ensures we actually use the real HuggingFace ML models
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    SILENT_CO_DRIVER_DEMO_MODE=0
+
+# Install system dependencies needed for audio processing
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libsndfile1 \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Hugging Face Spaces REQUIRE a non-root user (UID 1000)
+# This is the "bypass" to make Docker work on HF for free
+RUN useradd -m -u 1000 user
+USER user
+ENV HOME=/home/user \
+    PATH=/home/user/.local/bin:$PATH \
+    HF_HOME=/home/user/.cache/huggingface
+
+WORKDIR $HOME/app
+
+# Copy requirements and install
+COPY --chown=user requirements-prod.txt .
+RUN pip install --no-cache-dir -r requirements-prod.txt
+
+# Copy the app source code
+COPY --chown=user ./app ./app
+
+# Hugging Face Spaces route traffic to port 7860
+EXPOSE 7860
+
+# Start the FastAPI server on port 7860
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]

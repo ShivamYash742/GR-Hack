@@ -80,10 +80,18 @@ async def analyze(
                     import librosa
                     audio_array = librosa.resample(audio_array, orig_sr=sr, target_sr=16000)
             except Exception:
-                # Fallback if it's an unsupported format by soundfile (like WebM)
+                # Fallback if it's an unsupported format by soundfile (like MP3/WebM)
                 import librosa
-                audio_array, _ = librosa.load(io.BytesIO(contents), sr=16000, mono=True)
-                audio_array = audio_array.astype(np.float32)
+                import tempfile
+                import os
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+                    tmp.write(contents)
+                    tmp_path = tmp.name
+                try:
+                    audio_array, _ = librosa.load(tmp_path, sr=16000, mono=True)
+                    audio_array = audio_array.astype(np.float32)
+                finally:
+                    os.remove(tmp_path)
 
             # Run EVERYTHING concurrently (OpenF1 I/O + 2x ML CPU inference)
             # HF Spaces has 2 vCPUs, so we use max_workers=3 (2 for ML, 1 for I/O)

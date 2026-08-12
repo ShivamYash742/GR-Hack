@@ -49,7 +49,7 @@ function nodeStatus(stage: Stage, nodeKey: string, errorAt: number): StageStatus
 }
 
 const EMPTY_META: MetadataValues = {
-  driverId: "", racingNumber: null, grandPrix: "", sessionDate: "", messageTimestamp: "",
+  driverId: "TEST01", racingNumber: 99, grandPrix: "Test GP", sessionDate: "2023-01-01", messageTimestamp: "2023-01-01T12:00",
 };
 
 function toDatetimeLocal(iso: string): string {
