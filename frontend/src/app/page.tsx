@@ -58,8 +58,12 @@ function nodeStatus(stage: Stage, nodeKey: string, errorAt: number): StageStatus
   return "pending";
 }
 
-const EMPTY_META: MetadataValues = {
-  driverId: "TEST01", racingNumber: 99, grandPrix: "Test GP", sessionDate: "2023-01-01", messageTimestamp: "2023-01-01T12:00",
+const DEFAULT_REAL_META: MetadataValues = {
+  driverId: "CHALEC01",
+  racingNumber: 16,
+  grandPrix: "2023 Bahrain Grand Prix",
+  sessionDate: "2023-03-05",
+  messageTimestamp: "2023-03-05T15:50",
 };
 
 function toDatetimeLocal(iso: string): string {
@@ -88,7 +92,7 @@ async function fetchPresetFile(p: Preset): Promise<File> {
 
 export default function HomePage() {
   const [file, setFile]             = useState<File | null>(null);
-  const [metadata, setMetadata]     = useState<MetadataValues>(EMPTY_META);
+  const [metadata, setMetadata]     = useState<MetadataValues>(DEFAULT_REAL_META);
   const [stage, setStage]           = useState<Stage>("idle");
   const [result, setResult]         = useState<AnalyzeResponse | null>(null);
   const [error, setError]           = useState<string | null>(null);
