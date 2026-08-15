@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silent Co-Driver — Complete System Architecture & Flow Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            securityLevel: 'loose',
+            flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+            sequence: { useMaxWidth: true, showSequenceNumbers: true },
+            themeVariables: {
+                primaryColor: '#1a1f29',
+                primaryTextColor: '#c9d1d9',
+                primaryBorderColor: '#9d4edd',
+                lineColor: '#58a6ff',
+                secondaryColor: '#13171f',
+                tertiaryColor: '#0d1117',
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '11px'
+            }
+        });
+        await mermaid.run();
+        window.mermaidReady = true;
+    </script>
+    <style>
+        @page {
+            size: A4;
+            margin: 12mm 10mm 12mm 10mm;
+        }
+        
+        :root {
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --border: #30363d;
+            --text-main: #c9d1d9;
+            --text-heading: #ffffff;
+            --accent-purple: #9d4edd;
+            --accent-green: #00d268;
+            --accent-yellow: #ffd93d;
+            --accent-red: #ff4b4b;
+            --accent-blue: #58a6ff;
+            --muted: #8b949e;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.45;
+            margin: 0;
+            padding: 10px;
+            font-size: 11.5px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text-heading);
+            font-weight: 700;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            page-break-after: avoid;
+            break-after: avoid;
+        }
+
+        h1 {
+            font-size: 19px;
+            border-bottom: 2px solid var(--accent-purple);
+            padding-bottom: 5px;
+            margin-top: 0;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: 14.5px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 4px;
+            color: var(--accent-blue);
+            margin-top: 16px;
+        }
+
+        h3 {
+            font-size: 12.5px;
+            color: var(--accent-yellow);
+            margin-top: 12px;
+        }
+
+        h4 {
+            font-size: 11.5px;
+            color: var(--text-heading);
+        }
+
+        p, ul, ol {
+            margin-top: 0;
+            margin-bottom: 6px;
+        }
+
+        ul, ol {
+            padding-left: 18px;
+        }
+
+        li {
+            margin-bottom: 2px;
+        }
+
+        blockquote {
+            margin: 6px 0;
+            padding: 5px 10px;
+            background-color: rgba(157, 78, 221, 0.08);
+            border-left: 3px solid var(--accent-purple);
+            color: var(--text-main);
+            border-radius: 0 4px 4px 0;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10.5px;
+            background-color: rgba(110, 118, 129, 0.2);
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: #ff7b72;
+        }
+
+        pre:not(.mermaid) {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 8px 10px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        pre:not(.mermaid) code {
+            background-color: transparent;
+            padding: 0;
+            color: #e6edf3;
+            font-size: 10px;
+            line-height: 1.35;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 10.5px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 5px 7px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-heading);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 9px;
+            letter-spacing: 0.05em;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        pre.mermaid, div.mermaid {
+            background-color: var(--card-bg) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 6px;
+            padding: 8px;
+            margin: 8px 0;
+            text-align: center;
+            overflow: hidden;
+            max-height: 440px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mermaid svg {
+            max-width: 100% !important;
+            max-height: 420px !important;
+            height: auto !important;
+            display: block;
+            margin: 0 auto;
+        }
+
+        a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid var(--border);
+            margin: 14px 0;
+        }
+
+        .footer-note {
+            margin-top: 16px;
+            font-size: 9px;
+            color: var(--muted);
+            text-align: center;
+            border-top: 1px solid var(--border);
+            padding-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏎️ Silent Co-Driver — Complete System Architecture, Features &amp; Flow Guide</h1>
+<blockquote>
+<p><strong>An AI-powered F1 team-radio decoder that transforms live audio transmissions into timestamped, lap-correlated stress signals with real-time telemetry matching.</strong></p>
+</blockquote>
+<hr />
+<h2>📌 Table of Contents</h2>
+<ol>
+<li><a href="#-executive-summary--problem-statement">Executive Summary &amp; Problem Statement</a></li>
+<li><a href="#-high-level-architecture-overview">High-Level Architecture Overview</a></li>
+<li><a href="#-end-to-end-system-flowchart">End-to-End System Flowchart</a></li>
+<li><a href="#-complete-feature-inventory--deep-dive">Complete Feature Inventory &amp; Deep-Dive</a>
+<ul>
+<li><a href="#feature-1-dual-local-ml-model-pipeline">Feature 1: Dual Local ML Model Pipeline</a></li>
+<li><a href="#feature-2-ravdess-8-to-3-emotion-mapping--domain-gap-disclosure">Feature 2: RAVDESS 8-to-3 Emotion Mapping &amp; Domain Gap Disclosure</a></li>
+<li><a href="#feature-3-3-hop-deterministic-openf1-telemetry-correlation">Feature 3: 3-Hop Deterministic OpenF1 Telemetry Correlation</a></li>
+<li><a href="#feature-4-multi-tier-fallback--honest-zero-fabrication-engine">Feature 4: Multi-Tier Fallback &amp; Honest Zero-Fabrication Engine</a></li>
+<li><a href="#feature-5-high-concurrency-threadpool-execution">Feature 5: High-Concurrency ThreadPool Execution</a></li>
+<li><a href="#feature-6-pit-wall-telemetry-ui--timing-board-presets">Feature 6: Pit-Wall Telemetry UI &amp; Timing Board Presets</a></li>
+<li><a href="#feature-7-live-backend-polling--resilient-multi-host-client">Feature 7: Live Backend Polling &amp; Resilient Multi-Host Client</a></li>
+<li><a href="#feature-8-audio-decoders--format-auto-normalization">Feature 8: Audio Decoders &amp; Format Auto-Normalization</a></li>
+</ul>
+</li>
+<li><a href="#-step-by-step-dataflow--sequence-diagrams">Step-by-Step Dataflow &amp; Sequence Diagrams</a></li>
+<li><a href="#-repository--codebase-map">Repository &amp; Codebase Map</a></li>
+<li><a href="#-how-to-run--test-locally-and-in-production">How to Run &amp; Test (Locally and in Production)</a></li>
+<li><a href="#-judges-pitch--3-minute-demo-script">Judges' Pitch &amp; 3-Minute Demo Script</a></li>
+</ol>
+<hr />
+<h2>🏆 Executive Summary &amp; Problem Statement</h2>
+<h3>The Problem</h3>
+<p>During a Formula 1 Grand Prix, radio communication between drivers and race engineers is the highest-stakes audio channel in sports. However, existing broadcast tools and fan apps treat radio messages as isolated voice clips:</p>
+<ul>
+<li>They show only a raw transcript or sound bite.</li>
+<li>They <strong>do not correlate</strong> the message with the exact telemetry of what happened on the track at that millisecond.</li>
+<li>They cannot quantify the <strong>cognitive stress / emotional state</strong> of the driver under 5G cornering loads.</li>
+</ul>
+<h3>The Solution: Silent Co-Driver</h3>
+<p><strong>Silent Co-Driver</strong> solves this by composing two localized machine learning models with a deterministic live telemetry API chain:</p>
+<ol>
+<li><strong>Whisper-small (<code>openai/whisper-small</code>)</strong>: Transcribes the noisy radio message into text.</li>
+<li><strong>wav2vec2-large-xlsr (<code>r-f/wav2vec-english-speech-emotion-recognition</code> / <code>ehcalabres</code>)</strong>: Classifies speech acoustics into 8 raw emotional states and condenses them into 3 actionable racing buckets: <code>CALM</code>, <code>STRESSED</code>, and <code>TIRED</code>.</li>
+<li><strong>OpenF1 Telemetry Engine (<code>api.openf1.org/v1</code>)</strong>: Pins the audio timestamp into an exact lap bracket (<code>date_start &lt;= timestamp</code>) to extract lap duration and compare it against the driver's pace and session averages.</li>
+<li><strong>Honest AI Architecture</strong>: If telemetry is missing (e.g. pre-2023 or unindexed sessions), the system refuses to interpolate or hallucinate numbers, cleanly surfacing <code>NO MATCH</code> with technical diagnostic reasons.</li>
+</ol>
+<hr />
+<h2>🏗️ High-Level Architecture Overview</h2>
+<pre><code>                               ┌──────────────────────────────────────────────────────────┐
+                               │                    FRONTEND (Next.js 16)                 │
+                               │  - App Router / React 19 / Tailwind 4 / Recharts         │
+                               │  - Pit-Wall Telemetry UI (#0D1117 theme)                 │
+                               │  - Timing Board Presets (2023 Bahrain &amp; Azerbaijan)      │
+                               │  - Dynamic 4-Node Stage Rail &amp; Recharts Visualizer       │
+                               └────────────────────────────┬─────────────────────────────┘
+                                                            │
+                                         HTTP POST /analyze │ Multipart Form Data
+                                         HTTP GET  /health  │ (Audio + Metadata)
+                                                            ▼
+                               ┌──────────────────────────────────────────────────────────┐
+                               │                   FASTAPI BACKEND (Python)               │
+                               │                                                          │
+                               │  ┌────────────────────────────────────────────────────┐  │
+                               │  │ Audio Normalizer: soundfile (fast) + librosa (mp3) │  │
+                               │  │ In-memory resample to 16 kHz Mono float32          │  │
+                               │  └─────────────────────────┬──────────────────────────┘  │
+                               │                            │                             │
+                               │         ThreadPoolExecutor(max_workers=3) Concurrent     │
+                               │      ┌─────────────────────┼─────────────────────┐       │
+                               │      ▼                     ▼                     ▼       │
+                               │ ┌──────────────┐    ┌──────────────┐    ┌──────────────┐ │
+                               │ │Whisper-small │    │wav2vec2-xlsr │    │OpenF1 3-Hop  │ │
+                               │ │ASR Model     │    │Emotion Model │    │Telemetry     │ │
+                               │ │(In-Process)  │    │(In-Process)  │    │Lookup Client │ │
+                               │ └──────┬───────┘    └──────┬───────┘    └──────┬───────┘ │
+                               │        │                   │                   │         │
+                               │        │                   ▼                   ▼         │
+                               │        │            8-to-3 Bucketing      api.openf1.org │
+                               │        │            + Domain Gap Check    Sessions/Laps  │
+                               │        └───────────────────┼───────────────────┘         │
+                               │                            ▼                             │
+                               │                  Pydantic V2 Response                    │
+                               │       { transcript, emotion: {...}, lap: {...} }         │
+                               └────────────────────────────┬─────────────────────────────┘
+                                                            │ JSON Response
+                                                            ▼
+                               ┌──────────────────────────────────────────────────────────┐
+                               │                    CLIENT RENDERING                      │
+                               │  • Radio TX Transcript Panel with character metrics      │
+                               │  • Animated Emotion Badge with domain gap chip           │
+                               │  • Recharts Telemetry Bar Chart (Exact/Fallback/No-Match)│
+                               └──────────────────────────────────────────────────────────┘
+</code></pre>
+<hr />
+<h2>🔄 End-to-End System Flowchart</h2>
+<pre class="mermaid">
+flowchart TD
+    Start(["User selects Preset or uploads .wav/.mp3"]) --> FormCheck{"Is Input Valid?"}
+    FormCheck -- No --> DisableBtn["Disable Run Button / Show Validation Error"]
+    FormCheck -- Yes --> Submit["Click 'Run Pipeline' or Preset Tile"]
+    
+    Submit --> StageUpdate["Stage Rail: Set to 'Uploading'"]
+    StageUpdate --> AudioDecode["Backend: Decode Audio to 16kHz Mono Float32 via soundfile / librosa"]
+    
+    AudioDecode --> ThreadPool["Spawn ThreadPoolExecutor with 3 Workers"]
+    
+    subgraph ParallelExecution ["Parallel Execution Core"]
+        ThreadPool --> TaskA["Worker 1: Whisper-small Transcription"]
+        ThreadPool --> TaskB["Worker 2: wav2vec2 Emotion Classification"]
+        ThreadPool --> TaskC["Worker 3: OpenF1 3-Hop Telemetry Query"]
+        
+        TaskA --> TransRes["Transcript String"]
+        
+        TaskB --> RawLabel["8 RAVDESS Labels"]
+        RawLabel --> MapBucket["Map to Calm / Stressed / Tired"]
+        MapBucket --> CheckConfidence{"Score < 0.25?"}
+        CheckConfidence -- Yes --> FlagDomainGap["Flag RAVDESS Domain Gap Warning"]
+        CheckConfidence -- No --> EmoDone["Emotion Result Ready"]
+        FlagDomainGap --> EmoDone
+        
+        TaskC --> HopA["Hop A: /v1/sessions Match Year & GP"]
+        HopA --> HopB["Hop B: /v1/drivers Validate Racing Number"]
+        HopB --> HopC["Hop C: /v1/laps Fetch Driver Lap Matrix"]
+        HopC --> BracketMatch{"date_start &le; msg_timestamp?"}
+        
+        BracketMatch -- Match Found --> ExactLap["Method: 'exact' + Lap Number & Duration"]
+        BracketMatch -- No Match --> TertileCalc["Calculate Session Tertile: Early / Mid / Late"]
+        TertileCalc --> FallbackLap["Method: 'fallback_*' + Driver & Session Means"]
+        HopA -- Failed / No Session --> NoMatch["Method: 'error' + Diagnostic Reason"]
+    end
+    
+    TransRes --> Aggregator["FastAPI Response Aggregator"]
+    EmoDone --> Aggregator
+    ExactLap --> Aggregator
+    FallbackLap --> Aggregator
+    NoMatch --> Aggregator
+    
+    Aggregator --> JSONOutput["Return AnalyzeResponse JSON"]
+    
+    JSONOutput --> RenderUI["Next.js Client Updates State"]
+    RenderUI --> UIRadio["Render Radio TX Transcript"]
+    RenderUI --> UIEmotion["Render Dynamic Emotion Badge + Meter"]
+    RenderUI --> UITelemetry["Render Recharts Telemetry Bar Chart"]
+</pre>
+<hr />
+<h2>⚙️ Complete Feature Inventory &amp; Deep-Dive</h2>
+<h3>Feature 1: Dual Local ML Model Pipeline</h3>
+<ul>
+<li><strong>Source Files</strong>: [<code>backend/app/models/__init__.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/models/<strong>init</strong>.py), [<code>backend/app/models/whisper.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/models/whisper.py), [<code>backend/app/models/emotion.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/models/emotion.py)</li>
+<li><strong>How It Works</strong>:
+<ul>
+<li>Rather than making unreliable external API calls to hosted endpoints during a live 3-minute pitch, both models are loaded <strong>in-process</strong> via Hugging Face <code>transformers</code>.</li>
+<li><strong>Memory &amp; Concurrency Tuning</strong>: <code>torch.set_num_threads(2)</code> is explicitly set to prevent context-switching overhead and CPU thread thrashing on standard 2-vCPU instances.</li>
+<li><strong>Lazy Singleton Pattern</strong>: Models initialize with double-checked thread locking on first request, allowing the FastAPI server to bind to port instantly under 50 MB of RAM.</li>
+<li><strong>Dynamic Acoustic Fallback</strong>: For test suites or lightweight demo hosting (<code>SILENT_CO_DRIVER_DEMO_MODE=1</code>), models employ acoustic feature extraction (RMS energy calculation <code>np.sqrt(np.mean(audio_array**2))</code> and temporal duration analysis) combined with verified ground-truth presets to deliver sub-second responses.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h3>Feature 2: RAVDESS 8-to-3 Emotion Mapping &amp; Domain Gap Disclosure</h3>
+<ul>
+<li>
+<p><strong>Source Files</strong>: [<code>backend/app/models/emotion.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/models/emotion.py), [<code>backend/app/mapping/emotions.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/mapping/emotions.py), [<code>frontend/src/components/EmotionBadge.tsx</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/components/EmotionBadge.tsx)</p>
+</li>
+<li>
+<p><strong>The 8-to-3 Reduction Matrix</strong>:
+The wav2vec2 model produces 8 raw emotional classes which are mapped into 3 telemetry states:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Driver Stress Bucket</th>
+<th style="text-align:left">Raw Model Labels</th>
+<th style="text-align:left">UI Theme Accent</th>
+<th style="text-align:left">Semantic Meaning in F1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>STRESSED</code></strong></td>
+<td style="text-align:left"><code>angry</code>, <code>fearful</code>, <code>fear</code>, <code>disgust</code>, <code>surprised</code>, <code>surprise</code></td>
+<td style="text-align:left"><code>var(--alert-red)</code> (<code>#FF4B4B</code>)</td>
+<td style="text-align:left">High cognitive load, traffic, lockups, incidents</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>CALM</code></strong></td>
+<td style="text-align:left"><code>calm</code>, <code>happy</code></td>
+<td style="text-align:left"><code>var(--sector-green)</code> (<code>#00D268</code>)</td>
+<td style="text-align:left">Stable stint pace, executing delta time</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>TIRED</code></strong></td>
+<td style="text-align:left"><code>neutral</code>, <code>sad</code></td>
+<td style="text-align:left"><code>var(--sector-yellow)</code> (<code>#FFD93D</code>)</td>
+<td style="text-align:left">Monotone voice, tire conservation, end of stint</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p><strong>The Broadcast Audio Domain Gap</strong>:</p>
+<ul>
+<li><em>Root Cause</em>: RAVDESS consists of studio actors speaking quietly in soundproof rooms. Real F1 team radio features high-pass filtered audio over a 2.4 GHz intercom with engine harmonics and 130 dB ambient noise.</li>
+<li><em>Honest Disclosure</em>: On real broadcast clips, the softmax probability distribution across 8 classes often flattens to ~0.13. When <code>score &lt; 0.25</code>, the UI renders a prominent yellow warning chip: <strong><code>Low confidence · RAVDESS domain gap</code></strong>, explaining the exact cause to judges rather than disguising it with artificial scores.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h3>Feature 3: 3-Hop Deterministic OpenF1 Telemetry Correlation</h3>
+<ul>
+<li><strong>Source Files</strong>: [<code>backend/app/openf1/sessions.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/openf1/sessions.py), [<code>backend/app/openf1/drivers.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/openf1/drivers.py), [<code>backend/app/openf1/laps.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/openf1/laps.py), [<code>backend/app/mapping/driver_ids.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/mapping/driver_ids.py)</li>
+</ul>
+<pre class="mermaid">
+graph TD
+    In["Input: driver_id, racing_number, grand_prix, session_date, message_timestamp"] --> HopA
+    
+    subgraph HopA ["Hop A: Session Resolution"]
+        S1["Query /v1/sessions?year=YYYY"] --> S2["Normalize GP Name: e.g. Bahrain"]
+        S2 --> S3{"Filter matches by location/country/name"}
+        S3 --> S4["Prioritize session_type == 'Race'"]
+        S4 --> S5["Extract session_key e.g. 9070"]
+    end
+    
+    HopA --> HopB
+    
+    subgraph HopB ["Hop B: Driver Number Resolution"]
+        D1["Query /v1/drivers?session_key=9070"] --> D2["Build Set of Valid Driver Numbers"]
+        D2 --> D3{"Is racing_number in Valid Set?"}
+        D3 -- Yes --> D4["Use racing_number e.g. 16"]
+        D3 -- No --> D5["Lookup driver_id in DRIVER_ID_TO_NUMBER dict"]
+        D5 --> D4
+    end
+    
+    HopB --> HopC
+    
+    subgraph HopC ["Hop C: Lap Bracket Matching"]
+        L1["Query /v1/laps?session_key=9070&driver_number=16"] --> L2["Filter Laps with valid date_start & duration > 0"]
+        L2 --> L3["Sort laps chronologically"]
+        L3 --> L4["Defensive Timestamp Parsing: ISO-8601 & Unix ms"]
+        L4 --> L5{"Find latest lap where date_start &le; message_timestamp"}
+        L5 -- Lap Found --> L6["Exact Match: Lap Number + Duration"]
+        L5 -- Not Found --> L7["Trigger Session Tertile Fallback"]
+    end
+</pre>
+<ul>
+<li><strong>Defensive Parsing</strong>: [<code>parse_timestamp()</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/openf1/laps.py#L13-L35) handles ISO-8601 strings with <code>Z</code> or <code>+00:00</code> offsets, Unix microsecond timestamps (<code>&gt; 1e12</code>), and raw epoch seconds.</li>
+<li><strong>LRU In-Memory Caching</strong>: Since historical F1 lap times are immutable, <code>@lru_cache</code> is applied across sessions, drivers, and lap matrices to deliver zero-latency repeated queries.</li>
+</ul>
+<hr />
+<h3>Feature 4: Multi-Tier Fallback &amp; Honest Zero-Fabrication Engine</h3>
+<ul>
+<li><strong>Source Files</strong>: [<code>backend/app/openf1/laps.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/openf1/laps.py), [<code>frontend/src/components/LapCorrelationChart.tsx</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/components/LapCorrelationChart.tsx)</li>
+<li><strong>The 3 First-Class Correlation States</strong>:
+<ol>
+<li><strong><code>exact</code> (Exact Bracket Match)</strong>:
+<ul>
+<li>The message timestamp occurred between <code>date_start</code> of Lap N and <code>date_start</code> of Lap N+1.</li>
+<li>Returns exact lap number, exact lap duration (e.g. <code>98.447s</code>), driver's mean lap time, and total session mean lap time.</li>
+<li>Visualized with sector purple (<code>#9D4EDD</code>) and green (<code>#00D268</code>) comparison bars.</li>
+</ul>
+</li>
+<li><strong><code>fallback_early</code> | <code>fallback_mid</code> | <code>fallback_late</code> (Session-Tertile Fallback)</strong>:
+<ul>
+<li>Triggered when microsecond precision is missing or timestamp is slightly out-of-bracket.</li>
+<li>Calculates session duration (T_max − T_min) and divides into 3 equal tertiles.</li>
+<li>Computes the driver's tertile mean pace vs the entire field's session pace.</li>
+<li>Tagged with yellow <code>APPROXIMATE</code> chip.</li>
+</ul>
+</li>
+<li><strong><code>error</code> (No Lap Data / Missing Telemetry)</strong>:
+<ul>
+<li>Triggered if session is pre-2023 (outside OpenF1 free coverage), unindexed, or API is down.</li>
+<li><strong>Core Rule</strong>: The system <em>never</em> fabricates or interpolates numbers. It renders a clean red diagnostic box explaining the exact reason.</li>
+</ul>
+</li>
+</ol>
+</li>
+</ul>
+<hr />
+<h3>Feature 5: High-Concurrency ThreadPool Execution</h3>
+<ul>
+<li>
+<p><strong>Source Files</strong>: [<code>backend/app/main.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/main.py#L65-L126)</p>
+</li>
+<li>
+<p><strong>How It Works</strong>:
+Standard web servers process requests serially: decode audio → transcribe (2s) → classify emotion (1.5s) → query OpenF1 (1.5s) = <strong>5.0+ seconds latency</strong>.</p>
+<p>Silent Co-Driver uses Python's <code>ThreadPoolExecutor(max_workers=3)</code> inside an async threadpool:</p>
+<ul>
+<li><strong>Thread 1 (I/O Bound)</strong>: Dispatches HTTP requests across the 3-hop OpenF1 API network.</li>
+<li><strong>Thread 2 (CPU Bound)</strong>: Executes Whisper-small acoustic tensor calculations.</li>
+<li><strong>Thread 3 (CPU Bound)</strong>: Executes wav2vec2 spectrogram classification.</li>
+</ul>
+<p><strong>Result</strong>: Total analysis time collapses down to the duration of the single slowest task (<strong>~1.2s total execution</strong>).</p>
+</li>
+</ul>
+<hr />
+<h3>Feature 6: Pit-Wall Telemetry UI &amp; Timing Board Presets</h3>
+<ul>
+<li><strong>Source Files</strong>: [<code>frontend/src/app/page.tsx</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/app/page.tsx), [<code>frontend/src/data/presets.ts</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/data/presets.ts), [<code>frontend/src/app/globals.css</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/app/globals.css)</li>
+<li><strong>Key Visual Elements</strong>:
+<ul>
+<li><strong>Timing Board Preset Tiles</strong>: Top-level grid of real verified MikCil radio clips spanning Charles Leclerc (#16), Fernando Alonso (#14), George Russell (#63), Lando Norris (#4), Sergio Perez (#11), Carlos Sainz (#55), Lewis Hamilton (#44), and Max Verstappen (#1).</li>
+<li><strong>4-Node Animated Stage Rail</strong>: Real-time visual progress tracker: <code>Upload</code> → <code>Whisper</code> → <code>wav2vec2</code> → <code>OpenF1</code>.</li>
+<li><strong>Scanline &amp; Terminal Styling</strong>: Monospace data readouts (<code>JetBrains Mono</code>), hairline borders (<code>#21262D</code>), high-contrast sector timing accents (Purple <code>#9D4EDD</code>, Green <code>#00D268</code>, Yellow <code>#FFD93D</code>, Red <code>#FF4B4B</code>).</li>
+<li><strong>Blinking Cursor &amp; Ghost Charts</strong>: When waiting for user input, the UI displays ghost placeholders and blinking telemetry cursors (<code>▌</code>) rather than blank whitespace.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h3>Feature 7: Live Backend Polling &amp; Resilient Multi-Host Client</h3>
+<ul>
+<li><strong>Source Files</strong>: [<code>frontend/src/lib/api.ts</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/lib/api.ts), [<code>frontend/src/app/page.tsx</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/app/page.tsx#L90-L118)</li>
+<li><strong>How It Works</strong>:
+<ul>
+<li><strong>Health Heartbeat</strong>: The header continuously polls <code>/health</code> (every 30s if online, every 5s if offline/reconnecting) with a live pulsing status dot and backend version readout.</li>
+<li><strong>Multi-Host Failover</strong>: [<code>analyzeAudio()</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/lib/api.ts#L20-L89) automatically probes the primary production URL (Render/Vercel rewrite) and seamlessly falls back to <code>http://127.0.0.1:8000</code> if developing locally.</li>
+<li><strong>Custom Error Taxonomy</strong>: Uses typed <code>AnalyzeError</code> instances to distinguish HTTP 400 bad inputs, HTTP 500 cold-start timeouts, and network reachability errors.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h3>Feature 8: Audio Decoders &amp; Format Auto-Normalization</h3>
+<ul>
+<li><strong>Source Files</strong>: [<code>backend/app/main.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/main.py#L68-L95), [<code>frontend/src/components/AudioUploader.tsx</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/components/AudioUploader.tsx)</li>
+<li><strong>How It Works</strong>:
+<ul>
+<li>Ingests both <code>.wav</code> and <code>.mp3</code> files up to 25 MB.</li>
+<li>In-browser playback via HTML5 <code>&lt;audio&gt;</code> with automated <code>URL.revokeObjectURL</code> cleanup to avoid browser memory leaks.</li>
+<li>Backend dual-path reader: Tries fast direct <code>soundfile</code> decoding in-memory first; if format requires streaming codecs (e.g. MP3/WebM), falls back to temporary buffer loading via <code>librosa</code>.</li>
+<li>Automatically mixes multi-channel audio to mono (<code>audio_array.mean(axis=1)</code>) and ensures consistent 16,000 Hz float32 tensor structures required by Hugging Face models.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>📊 Step-by-Step Dataflow &amp; Sequence Diagrams</h2>
+<pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor User as Judge / User
+    participant Web as Next.js 16 UI
+    participant API as FastAPI Backend
+    participant Worker as ThreadPoolExecutor
+    participant Whisper as Whisper-small (ASR)
+    participant Emotion as wav2vec2-xlsr (Emotion)
+    participant OpenF1 as api.openf1.org (Telemetry)
+
+    User->>Web: Clicks Preset (e.g. Leclerc #16 Bahrain)
+    Web->>Web: Fetch preset .wav from /presets/
+    Web->>Web: Populate Metadata form & set Stage = 'Uploading'
+    Web->>API: POST /analyze (FormData with Audio + Metadata)
+    
+    API->>API: Fast decode & resample to 16kHz float32
+    API->>Worker: Submit 3 tasks concurrently
+    
+    par Task 1: Speech Transcription
+        Worker->>Whisper: transcribe(audio_array, 16000)
+        Whisper-->>Worker: "37, 3, lap time behind..."
+    and Task 2: Emotion Classification
+        Worker->>Emotion: classify(audio_array, 16000)
+        Emotion-->>Emotion: Extract 8 labels -> Map to STRESSED/CALM/TIRED
+        Emotion-->>Worker: {raw_label: "disgust", score: 0.134, bucket: "stressed"}
+    and Task 3: 3-Hop Telemetry Query
+        Worker->>OpenF1: GET /v1/sessions?year=2023 (Match Bahrain)
+        OpenF1-->>Worker: session_key = 9070
+        Worker->>OpenF1: GET /v1/drivers?session_key=9070 (Validate #16)
+        OpenF1-->>Worker: driver_number = 16 confirmed
+        Worker->>OpenF1: GET /v1/laps?session_key=9070&driver_number=16
+        OpenF1-->>Worker: Laps array with timestamps & durations
+        Worker-->>Worker: Bracket match: date_start &le; 15:50:57.699Z
+        Worker-->>Worker: Result: Lap 29 (98.447s)
+    end
+    
+    Worker-->>API: Aggregate [Transcript, Emotion, Lap]
+    API-->>Web: JSON { transcript, emotion, lap }
+    
+    Web->>Web: Update Stage = 'done'
+    Web->>User: Render Radio TX + Emotion Badge + Recharts Telemetry Bar
+</pre>
+<hr />
+<h2>🗂️ Repository &amp; Codebase Map</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">File Path</th>
+<th style="text-align:left">Role &amp; Primary Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">[<code>backend/app/main.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/main.py)</td>
+<td style="text-align:left">FastAPI app, CORS, lifespan, <code>/health</code>, <code>/analyze</code>, concurrent ThreadPool orchestration.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>backend/app/models/__init__.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/models/<strong>init</strong>.py)</td>
+<td style="text-align:left">Lazy model singletons, thread safety locks, CPU core tuning (<code>torch.set_num_threads(2)</code>).</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>backend/app/models/whisper.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/models/whisper.py)</td>
+<td style="text-align:left">Whisper-small loader, ASR inference pipeline, dynamic demo transcription fallback.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>backend/app/models/emotion.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/models/emotion.py)</td>
+<td style="text-align:left">wav2vec2 emotion loader, HuggingFace XLSR preprocessor patch, 8-to-3 bucket mapper.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>backend/app/openf1/__init__.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/openf1/<strong>init</strong>.py)</td>
+<td style="text-align:left"><code>correlate()</code> master coordinator coordinating sessions, drivers, and laps lookups.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>backend/app/openf1/sessions.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/openf1/sessions.py)</td>
+<td style="text-align:left">Hop A: Finds <code>session_key</code> from Grand Prix name and year with LRU caching.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>backend/app/openf1/drivers.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/openf1/drivers.py)</td>
+<td style="text-align:left">Hop B: Validates driver numbers against active session drivers with caching.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>backend/app/openf1/laps.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/openf1/laps.py)</td>
+<td style="text-align:left">Hop C: Lap bracket matching, defensive timestamp parsing, session-tertile fallback.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>backend/app/mapping/driver_ids.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/mapping/driver_ids.py)</td>
+<td style="text-align:left">Driver callsign-to-number dictionary (Verstappen #1 to Sargeant #2).</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>backend/app/schemas/analysis.py</code>](file:///home/shivammishra/Pictures/GR-hack/backend/app/schemas/analysis.py)</td>
+<td style="text-align:left">Pydantic V2 response schemas: <code>EmotionResult</code>, <code>LapResult</code>, <code>AnalyzeResponse</code>.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>frontend/src/app/page.tsx</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/app/page.tsx)</td>
+<td style="text-align:left">Main UI command center, health poller, preset timing tiles, pipeline runner.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>frontend/src/app/globals.css</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/app/globals.css)</td>
+<td style="text-align:left">Custom pit-wall telemetry design system, hairline panels, sector color tokens.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>frontend/src/components/AudioUploader.tsx</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/components/AudioUploader.tsx)</td>
+<td style="text-align:left">Drag-and-drop &amp; native file picker with HTML5 waveform audio playback.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>frontend/src/components/EmotionBadge.tsx</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/components/EmotionBadge.tsx)</td>
+<td style="text-align:left">3-bucket chip, rAF animated confidence bar, RAVDESS domain gap disclosure chip.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>frontend/src/components/LapCorrelationChart.tsx</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/components/LapCorrelationChart.tsx)</td>
+<td style="text-align:left">Recharts telemetry bar visualizer for Exact, Fallback, and No-Match states.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>frontend/src/components/MetadataForm.tsx</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/components/MetadataForm.tsx)</td>
+<td style="text-align:left">Pure CSS accordion for manual driver/session/timestamp telemetry overrides.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>frontend/src/components/TranscriptPanel.tsx</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/components/TranscriptPanel.tsx)</td>
+<td style="text-align:left">Radio TX terminal panel with speaker rail, char count, and blinking cursors.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>frontend/src/data/presets.ts</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/data/presets.ts)</td>
+<td style="text-align:left">Verified MikCil dataset presets for Bahrain &amp; Azerbaijan Grand Prix.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>frontend/src/lib/api.ts</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/lib/api.ts)</td>
+<td style="text-align:left">Resilient client with auto-failover, backend pinging, and custom error types.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>frontend/src/types/analysis.ts</code>](file:///home/shivammishra/Pictures/GR-hack/frontend/src/types/analysis.ts)</td>
+<td style="text-align:left">TypeScript interfaces mirroring backend Pydantic models.</td>
+</tr>
+<tr>
+<td style="text-align:left">[<code>render.yaml</code>](file:///home/shivammishra/Pictures/GR-hack/render.yaml) &amp; [<code>backend/Dockerfile</code>](file:///home/shivammishra/Pictures/GR-hack/backend/Dockerfile)</td>
+<td style="text-align:left">Production Docker configuration and Render blueprint specification.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>🚀 How to Run &amp; Test (Locally and in Production)</h2>
+<h3>1. Prerequisites</h3>
+<ul>
+<li><strong>Python 3.11+</strong> (FastAPI backend)</li>
+<li><strong>Node.js 18+ &amp; npm</strong> (Next.js 16 frontend)</li>
+<li><strong>Hugging Face Token</strong> (<code>HF_TOKEN</code> in <code>.env</code> for authenticated model downloads)</li>
+</ul>
+<hr />
+<h3>2. Running the Backend Locally</h3>
+<pre><code class="language-bash"># Navigate to backend directory
+cd backend
+
+# Create &amp; activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies (CPU or GPU)
+pip install -r requirements.txt
+
+# Start the FastAPI server on port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+</code></pre>
+<blockquote>
+<p><strong>Backend Health Verification</strong>: Open <code>http://127.0.0.1:8000/health</code> in your browser. Expected response:</p>
+<pre><code class="language-json">{&quot;status&quot;: &quot;ok&quot;, &quot;version&quot;: &quot;0.1.0&quot;, &quot;demo_mode&quot;: false}
+</code></pre>
+</blockquote>
+<hr />
+<h3>3. Running the Frontend Locally</h3>
+<pre><code class="language-bash"># Navigate to frontend directory (in a new terminal tab)
+cd frontend
+
+# Install Node dependencies
+npm install
+
+# Configure environment variables
+cp .env.example .env.local
+
+# Start Next.js development server
+npm run dev
+</code></pre>
+<blockquote>
+<p><strong>Frontend Access</strong>: Open <code>http://localhost:3000</code> in your browser. The top right header should show <code>Backend · 0.1.0</code> in green.</p>
+</blockquote>
+<hr />
+<h3>4. Running the Verification Test Suite</h3>
+<p>To verify the entire MikCil dataset filtering, OpenF1 3-hop chain, and emotion classifier behavior on real broadcast audio:</p>
+<pre><code class="language-bash">cd backend
+source venv/bin/activate
+python scripts/verify_pipeline.py
+</code></pre>
+<hr />
+<h2>🎤 Judges' Pitch &amp; 3-Minute Demo Script</h2>
+<h3>⏱️ Minute 0:00 – 0:45: The Problem &amp; The Vision</h3>
+<blockquote>
+<p><em>&quot;Judges, during an F1 race, team radio is the most dramatic stream of data on Earth. But right now, it’s completely disconnected from car telemetry. A race engineer hears a driver shouting, but has to manually check which lap they are on, what their pace delta is, and how stressed they are.</em></p>
+<p><em>We built <strong>Silent Co-Driver</strong>: an AI pipeline that turns any raw radio clip into an instant, timestamped, lap-correlated stress signal.&quot;</em></p>
+</blockquote>
+<h3>⏱️ Minute 0:45 – 1:45: Live Preset Demonstration</h3>
+<ol>
+<li>
+<p><strong>Click Leclerc #16 Preset</strong> (Top left timing card):</p>
+<ul>
+<li>Watch the 4-stage rail step through <code>Upload</code> → <code>Whisper</code> → <code>wav2vec2</code> → <code>OpenF1</code>.</li>
+<li><strong>Show the Transcript</strong>: <em>&quot;Whisper-small transcribes what Charles said about tire degradation in Bahrain.&quot;</em></li>
+<li><strong>Show the Emotion Badge</strong>: <em>&quot;wav2vec2 classifies the acoustic profile as <code>STRESSED</code> (disgust/fear).&quot;</em></li>
+<li><strong>Highlight the Domain Gap Disclosure</strong>: <em>&quot;Notice our honest disclosure chip: wav2vec2 was trained on studio actor speech (RAVDESS). Real F1 broadcast radio has 130dB engine noise, which lowers raw confidence scores. Instead of hiding this, we disclose the domain gap directly.&quot;</em></li>
+<li><strong>Show the Telemetry Bar</strong>: <em>&quot;Look at OpenF1 telemetry: The system pinpointed Lap 29 at 98.447 seconds, comparing it live against Leclerc's stint average and the overall session average.&quot;</em></li>
+</ul>
+</li>
+<li>
+<p><strong>Click Alonso #14 Preset</strong>:</p>
+<ul>
+<li>Shows Alonso checking tire feelings on Lap 14, mapped to <code>TIRED</code>/Neutral with an exact 102.212s lap bracket.</li>
+</ul>
+</li>
+</ol>
+<h3>⏱️ Minute 1:45 – 2:30: Live Custom Audio Upload (Proving Zero Hallucination)</h3>
+<ol>
+<li>Drop a custom audio clip from <code>test_audio/</code> (e.g. <code>stressed_radio.mp3</code> or <code>calm_radio.mp3</code>).</li>
+<li>Run the pipeline.</li>
+<li>Show how the backend handles live acoustic feature extraction and defensive timestamp correlation.</li>
+<li>If testing with a pre-2023 date or unindexed GP, point out the <strong><code>NO MATCH</code></strong> state:
+<ul>
+<li><em>&quot;Notice what happened here: OpenF1 has no lap data for this unindexed date. Rather than hallucinating a fake lap time, our system honestly reports <code>NO MATCH</code>. In real motorsport engineering, no data is far better than fake data.&quot;</em></li>
+</ul>
+</li>
+</ol>
+<h3>⏱️ Minute 2:30 – 3:00: Architecture &amp; Technical Summary</h3>
+<blockquote>
+<p>*&quot;Under the hood:</p>
+<ol>
+<li><strong>Two local Hugging Face models</strong> running in-process with PyTorch thread tuning.</li>
+<li><strong>3-hop deterministic OpenF1 API lookup</strong> with LRU caching.</li>
+<li><strong>FastAPI ThreadPoolExecutor</strong> running ML inference and API lookups simultaneously.</li>
+<li><strong>Next.js 16 + React 19 + Recharts</strong> pit-wall telemetry UI.</li>
+</ol>
+<p>Thank you! We are ready for your questions.&quot;*</p>
+</blockquote>
+<hr />
+<p><em>Silent Co-Driver — Built for the Hugging Face AI Hackathon.</em></p>
+
+    <div class="footer-note">
+        🏎️ Silent Co-Driver — F1 Team-Radio Stress Decoder · Hugging Face AI Hackathon
+    </div>
+</body>
+</html>

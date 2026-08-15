@@ -61,3 +61,33 @@ export const LAP_METHOD_TAG_COLOR: Record<
   fallback_late: "yellow",
   error: "muted",
 };
+
+export type BackendMode = "auto" | "local" | "server" | "custom";
+export type BackendTargetType = "local" | "server" | "custom";
+export type BackendStatus = "online" | "offline" | "checking";
+
+export interface BackendConnectionInfo {
+  mode: BackendMode;
+  targetType: BackendTargetType | null;
+  activeUrl: string;
+  configuredServerUrl: string;
+  configuredLocalUrl: string;
+  customUrl: string;
+  status: BackendStatus;
+  latencyMs: number | null;
+  version: string | null;
+  demoMode: boolean;
+  lastChecked: number | null;
+  errorMessage?: string | null;
+}
+
+export interface BackendPingResult {
+  ok: boolean;
+  url: string;
+  targetType: BackendTargetType;
+  latencyMs: number;
+  version?: string;
+  demoMode?: boolean;
+  error?: string;
+}
+

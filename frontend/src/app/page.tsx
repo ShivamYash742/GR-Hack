@@ -1,16 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import AudioUploader from "@/components/AudioUploader";
+import BackendModal from "@/components/BackendModal";
 import EmotionBadge from "@/components/EmotionBadge";
 import dynamic from "next/dynamic";
 const LapCorrelationChart = dynamic(() => import("@/components/LapCorrelationChart"), { ssr: false });
 import MetadataForm, { type MetadataValues } from "@/components/MetadataForm";
 import TranscriptPanel from "@/components/TranscriptPanel";
 import { PRESETS, type Preset } from "@/data/presets";
-import { analyzeAudio, AnalyzeError, pingBackend } from "@/lib/api";
-import type { AnalyzeResponse } from "@/types/analysis";
+import {
+  analyzeAudio,
+  AnalyzeError,
+  DEFAULT_LOCAL_URL,
+  DEFAULT_SERVER_URL,
+  pingBackend,
+} from "@/lib/api";
+import type {
+  AnalyzeResponse,
+  BackendConnectionInfo,
+} from "@/types/analysis";
 
 type Stage =
   | "idle"
@@ -84,17 +94,27 @@ export default function HomePage() {
   const [error, setError]           = useState<string | null>(null);
   const [errorAt, setErrorAt]       = useState(3);
   const [activePreset, setActivePreset] = useState<string | null>(null);
-  const [backend, setBackend]       = useState<"online" | "offline" | "checking">("checking");
-  const [backendVer, setBackendVer] = useState<string | null>(null);
+  const [backendModalOpen, setBackendModalOpen] = useState(false);
 
-  const checkBackend = useCallback(async () => {
-    setBackend("checking");
-    const { ok, version } = await pingBackend();
-    setBackend(ok ? "online" : "offline");
-    if (ok && version) {
-      setBackendVer(version);
-    }
-    return ok;
+  const [connInfo, setConnInfo] = useState<BackendConnectionInfo>({
+    mode: "auto",
+    targetType: null,
+    activeUrl: DEFAULT_LOCAL_URL,
+    configuredServerUrl: DEFAULT_SERVER_URL,
+    configuredLocalUrl: DEFAULT_LOCAL_URL,
+    customUrl: "",
+    status: "checking",
+    latencyMs: null,
+    version: null,
+    demoMode: false,
+    lastChecked: null,
+  });
+
+  const checkBackend = useCallback(async (): Promise<BackendConnectionInfo> => {
+    setConnInfo((prev) => ({ ...prev, status: "checking" }));
+    const info = await pingBackend();
+    setConnInfo(info);
+    return info;
   }, []);
 
   useEffect(() => {
@@ -103,9 +123,9 @@ export default function HomePage() {
 
     async function poll() {
       if (dead) return;
-      const ok = await checkBackend();
+      const info = await checkBackend();
       if (dead) return;
-      const intervalMs = ok ? 30_000 : 5_000;
+      const intervalMs = info.status === "online" ? 30_000 : 8_000;
       timer = setTimeout(poll, intervalMs);
     }
 
@@ -144,7 +164,7 @@ export default function HomePage() {
         message_timestamp: meta.messageTimestamp,
       });
       setResult(data);
-      setBackend("online");
+      setConnInfo((prev) => ({ ...prev, status: "online" }));
       setStage("done");
     } catch (e) {
       setError(
@@ -182,8 +202,19 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col flex-1 min-h-screen">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <AppHeader status={backend} version={backendVer} onRefresh={checkBackend} />
+      {/* ── Header with Telemetry Connection Indicator ──────────────────────── */}
+      <AppHeader
+        connectionInfo={connInfo}
+        onOpenModal={() => setBackendModalOpen(true)}
+      />
+
+      {/* ── Backend Link Modal ──────────────────────────────────────────────── */}
+      <BackendModal
+        isOpen={backendModalOpen}
+        onClose={() => setBackendModalOpen(false)}
+        connectionInfo={connInfo}
+        onRefresh={checkBackend}
+      />
 
       {/* ── Timing board preset strip ───────────────────────────────────────── */}
       <div className="border-b border-[var(--border)]">
@@ -259,7 +290,36 @@ export default function HomePage() {
 
           {/* Pipeline + Run */}
           <div className="hairline p-5 flex flex-col gap-4">
-            <h2 className="section-label">Analysis Pipeline</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="section-label">Analysis Pipeline</h2>
+              {/* Target endpoint link badge */}
+              <button
+                type="button"
+                onClick={() => setBackendModalOpen(true)}
+                className="flex items-center gap-1 text-[10px] font-mono text-[var(--muted)] hover:text-[var(--body)] cursor-pointer"
+                title="Click to configure backend link"
+              >
+                <span>Target:</span>
+                <span
+                  className={
+                    connInfo.targetType === "local"
+                      ? "text-[var(--sector-green)] font-bold"
+                      : connInfo.targetType === "server"
+                      ? "text-[var(--sector-purple)] font-bold"
+                      : "text-[var(--sector-yellow)] font-bold"
+                  }
+                >
+                  {connInfo.targetType === "local"
+                    ? "LOCAL (127.0.0.1:8000)"
+                    : connInfo.targetType === "server"
+                    ? "CLOUD SERVER"
+                    : connInfo.targetType === "custom"
+                    ? "CUSTOM"
+                    : "AUTO"}
+                </span>
+                <span className="text-[8px]">⚙</span>
+              </button>
+            </div>
 
             {/* Stage rail */}
             <div className="flex items-center gap-1.5">
@@ -326,11 +386,30 @@ export default function HomePage() {
           {["Whisper-small", "wav2vec2-lg-xlsr", "OpenF1 API"].map((m) => (
             <span key={m} className="chip chip--muted" style={{ fontSize: "9px" }}>{m}</span>
           ))}
-          <span className="text-[10px] text-[var(--muted)] font-[family-name:var(--font-mono)]">
-            · no HF hosted API · models run local
-          </span>
+          <button
+            type="button"
+            onClick={() => setBackendModalOpen(true)}
+            className="text-[10px] text-[var(--muted)] hover:text-[var(--body)] font-[family-name:var(--font-mono)] cursor-pointer flex items-center gap-1.5"
+          >
+            <span>· Link:</span>
+            <span className={connInfo.targetType === "local" ? "text-[var(--sector-green)]" : "text-[var(--sector-purple)]"}>
+              {connInfo.targetType === "local" ? "LOCAL" : "CLOUD SERVER"}
+            </span>
+            {connInfo.latencyMs !== null && (
+              <span className="tabnum text-[var(--muted)]">({connInfo.latencyMs}ms)</span>
+            )}
+          </button>
         </div>
-        <span className="chip chip--yellow" style={{ fontSize: "9px" }}>domain gap disclosed</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setBackendModalOpen(true)}
+            className="chip chip--muted text-[9px] hover:border-[var(--body)] transition-colors cursor-pointer"
+          >
+            Link Settings ⚙
+          </button>
+          <span className="chip chip--yellow" style={{ fontSize: "9px" }}>domain gap disclosed</span>
+        </div>
       </footer>
     </div>
   );
@@ -339,24 +418,45 @@ export default function HomePage() {
 /* ─── Header ─────────────────────────────────────────────────────────────── */
 
 function AppHeader({
-  status,
-  version,
-  onRefresh,
+  connectionInfo,
+  onOpenModal,
 }: {
-  status: string;
-  version: string | null;
-  onRefresh: () => void;
+  connectionInfo: BackendConnectionInfo;
+  onOpenModal: () => void;
 }) {
-  const dotColor =
-    status === "online"   ? "var(--sector-green)"  :
-    status === "checking" ? "var(--sector-yellow)" : "var(--muted)";
-  const dotAnim = status === "checking" ? "pulse-dot" : "";
-  const label =
-    status === "online"   ? (version ?? "online") :
-    status === "checking" ? "pinging…"             : "unreachable";
+  const isOnline = connectionInfo.status === "online";
+  const isChecking = connectionInfo.status === "checking";
+
+  const dotColor = isOnline
+    ? "var(--sector-green)"
+    : isChecking
+    ? "var(--sector-yellow)"
+    : "var(--alert-red)";
+
+  const dotAnim = isChecking ? "pulse-dot" : "";
+
+  const targetLabel =
+    connectionInfo.targetType === "local"
+      ? "LOCAL"
+      : connectionInfo.targetType === "server"
+      ? "SERVER"
+      : connectionInfo.targetType === "custom"
+      ? "CUSTOM"
+      : isOnline
+      ? "ONLINE"
+      : "OFFLINE";
+
+  const displayHost = (() => {
+    try {
+      const u = new URL(connectionInfo.activeUrl);
+      return u.host;
+    } catch {
+      return connectionInfo.activeUrl.replace(/^https?:\/\//, "").slice(0, 18);
+    }
+  })();
 
   return (
-    <header className="header-scanlines border-b border-[var(--border)] px-4 lg:px-6 py-4 flex items-center justify-between max-w-[1440px] w-full mx-auto flex-wrap gap-4">
+    <header className="header-scanlines border-b border-[var(--border)] px-4 lg:px-6 py-3.5 flex items-center justify-between max-w-[1440px] w-full mx-auto flex-wrap gap-3">
       <div className="flex items-center gap-3">
         {/* Left accent bar */}
         <div className="w-[3px] self-stretch" style={{ background: "var(--sector-purple)" }} />
@@ -370,20 +470,56 @@ function AppHeader({
         </div>
       </div>
 
+      {/* High-Tech Telemetry Link Badge (Clickable for Diagnostics & Switcher) */}
       <button
         type="button"
-        onClick={onRefresh}
-        title="Click to check backend status"
-        className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:opacity-80 transition-opacity border border-transparent hover:border-[var(--border)] px-2 py-1"
+        onClick={onOpenModal}
+        title="Click to view backend telemetry link, switch Local/Server, or run ping diagnostics"
+        className="flex items-center gap-2.5 font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.08em] cursor-pointer hover:bg-[var(--panel)] transition-all border border-[var(--border)] hover:border-[var(--muted)] px-3 py-1.5 bg-[var(--base)]"
       >
-        <span className="text-[var(--muted)]">Backend</span>
-        <span
-          className={dotAnim}
-          style={{ display: "inline-block", width: 8, height: 8, background: dotColor, flexShrink: 0 }}
-        />
-        <span className="tabnum" style={{ color: dotColor }}>{label}</span>
+        <div className="flex items-center gap-1.5">
+          <span
+            className={dotAnim}
+            style={{
+              display: "inline-block",
+              width: 7,
+              height: 7,
+              background: dotColor,
+              flexShrink: 0,
+            }}
+          />
+          <span className="text-[var(--muted)] text-[9px]">LINK:</span>
+          <span
+            className={
+              connectionInfo.targetType === "local"
+                ? "text-[var(--sector-green)] font-bold"
+                : connectionInfo.targetType === "server"
+                ? "text-[var(--sector-purple)] font-bold"
+                : isOnline
+                ? "text-[var(--sector-yellow)] font-bold"
+                : "text-[var(--alert-red)] font-bold"
+            }
+          >
+            {targetLabel}
+          </span>
+        </div>
+
+        {/* Host preview */}
+        <span className="text-[var(--muted)] hidden sm:inline-block tabnum">
+          [{displayHost}]
+        </span>
+
+        {/* Latency badge */}
+        {connectionInfo.latencyMs !== null && isOnline && (
+          <span className="text-[var(--body)] tabnum text-[9px] bg-[var(--panel)] px-1.5 py-0.5 border border-[var(--border-dim)]">
+            {connectionInfo.latencyMs}ms
+          </span>
+        )}
+
+        <span className="text-[9px] text-[var(--muted)] hover:text-[var(--sector-yellow)]">
+          ⚙
+        </span>
       </button>
     </header>
   );
 }
-
